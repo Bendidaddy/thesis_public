@@ -1,0 +1,252 @@
+---
+title: "Inflammation statistics"
+author: "Bendegúz Áron Varga"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
+---
+
+# Importing
+
+```{r setup, warning = F, message = F}
+knitr::opts_chunk$set(echo = TRUE)
+
+setwd('D:/Helsinki drive/OneDrive - University of Helsinki/____Trophin lab research/Thesis/Thesis_stat')
+
+# Have to check which is for the correl plot
+library(GGally)
+library(ggExtra)
+library(psych)
+library(lemon)
+
+# Data management 
+library(knitr)
+library(readxl)
+
+# Descriptive statistics
+library(ggplot2)
+library(PupillometryR)
+library(dplyr)
+
+# Inductive statistics
+library(lme4)
+library(lmerTest)
+library(multcomp)
+library(redres)
+
+# Classification
+library(randomForest)
+library(randomForestExplainer)
+
+coverage <- read_excel("results_inflammation.xlsx", sheet = "coverage")
+whole <- read_excel("results_inflammation.xlsx", sheet = "QUINT")
+
+# Changing variable nature
+for(i in 6:24) {
+  coverage[, i] <- lapply(coverage[, i], as.numeric)
+}
+
+# Exclude groups for now
+coverage <- coverage[coverage$Group %in% c('Ctrl','Vehicle','CORT'),]
+
+# Taking care of level orders
+coverage$Group <- factor(coverage$Group, levels = c('Ctrl', 'Vehicle', 'CORT'))
+coverage$Bregma <- factor(coverage$Bregma, levels = c('-2.1mm', '-0.8mm', '0.8mm', '2.1mm'))
+```
+# Custom-made functions
+
+```{r myfunctions, warning = F, message = F}
+themes <- theme(axis.title.y = element_text(size = rel(1.5), 
+                                    angle = 90, 
+                                    margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.title.x = element_text(size = rel(1.5), 
+                                    angle = 0, 
+                                    margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
+        legend.title = element_text(size = rel(1.5), face = "bold"),
+        legend.text = element_text(size = rel(1.5), angle = 0),
+        axis.text  = element_text(size = rel(1.5), angle = 0),
+        plot.title = element_text(color="darkgray",
+                                    size=18,
+                                    face="bold",
+                                    margin = ggplot2::margin(t = 0, r = 100, b = 35, l = 100)),
+          strip.text = element_text(size=rel(1.5),
+                                      face="bold")) 
+
+prince <- function(data, variable, yaxis) {
+  ggplot(data, aes(y=variable,x=Group, color=Group))+
+    geom_flat_violin(aes(fill = Group),
+                     position = position_nudge(x = .2, y = 0),
+                     adjust = 0.8,
+                     trim = F,
+                     alpha = .6,
+                     colour = NA)+
+    geom_boxplot(aes(x = Group, y = variable, fill = Group),
+                 outlier.shape = NA, alpha = .6, width = .2, colour = "black")+
+    geom_point(position = position_jitter(width = .05),
+               size = 4,
+               shape = 20)+
+    ylab(yaxis)+
+    theme_minimal() +
+    theme(axis.title.y = element_text(size = rel(1.5), 
+                                      angle = 90, 
+                                      margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+          axis.title.x = element_blank(),
+          legend.title = element_text(size = rel(1.2), face = "bold"),
+          legend.text = element_text(size = rel(1.2), angle = 0),
+          axis.text.x  = element_blank(),
+          axis.text.y  = element_text(size = rel(1.5), angle = 0),
+          plot.title = element_text(color="darkgray",
+                                    size=18,
+                                    face="bold",
+                                    margin = ggplot2::margin(t = 0, r = 100, b = 35, l = 100)),
+          strip.text.x = element_text(size = rel(1.5), angle = 0,
+                                      face="bold")) + 
+    scale_color_manual(values=c('#648FFF', '#785EF0', '#DC267F', '#FE6100', '#1EAD1E')) +
+    scale_fill_manual(values=c('#648FFF', '#785EF0', '#DC267F', '#FE6100', '#1EAD1E'))+
+    guides(fill = FALSE)}
+
+fittedplot <- function(data, mod) {
+  a <- ggplot(data, aes(x = fitted(mod), y =  compute_redres(mod, type = "std_cond"), fill = 1))+
+    geom_point()+
+    stat_smooth(method="loess")+
+    geom_hline(yintercept=0, col="red", linetype="dashed")+
+    labs(x = "Fitted values", y = "Standardized residuals") +
+    geom_point() +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    themes+
+    xlim(min(fitted(mod))*0.9, max(fitted(mod))*1.1)
+  
+  df <- data.frame(y = residuals(mod))
+  b <- ggplot(df, aes(sample = y)) +
+    stat_qq() + stat_qq_line(lwd = 0.8)+
+    theme_minimal() +
+    themes + 
+    labs(y = "Theoretical quantiles", x = "Sample quantiles")
+  
+  df1 <- data.frame(y = ranef(mod)[[1]])
+  c <- ggplot(df1, aes(sample = pull(df1, 1))) +
+    stat_qq() + stat_qq_line(lwd = 0.8)+
+    theme_minimal() +
+    themes + 
+    labs(y = "Theoretical quantiles", x = "Sample quantiles")
+  return(list(a,b,c))}
+
+coverage_table <- data.frame(Response = c(),
+                        Effect = c(),
+                        Coefficient = c(),
+                        Standard_error = c(),
+                        T_value = c(),
+                        p_value = c())
+```
+
+# Inflammation signal coverage
+
+## Coverage models
+
+```{r coverage, warning = F, message = F, results='hide'}
+# GFAP
+mod_GFAP_cov <- lmer(GFAP_coverage~Group + (1|ID_easy),
+                                    data=coverage,
+                                    na.action=na.exclude)
+summod_GFAP_cov <- summary(mod_GFAP_cov)
+
+  coverage_table[1:3, 'Response'] <- rep('GFAP coverage', 3)
+  coverage_table[1:3, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+  coverage_table[1:3, 'Coefficient'] <- round(summod_GFAP_cov[["coefficients"]][1:3,1], 2)
+  coverage_table[1:3, 'Standard_error'] <- round(summod_GFAP_cov[["coefficients"]][1:3,2], 2)
+  coverage_table[1:3, 'T_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3,4], 3)
+  coverage_table[1:3, 'p_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3, 5], 4)
+
+fittedplot(coverage, mod_GFAP_cov)
+
+# IBA
+mod_IBA_cov <- lmer(IBA_coverage~Group + (1|ID_easy),
+                                    data=coverage,
+                                    na.action=na.exclude)
+summod_IBA_cov <- summary(mod_IBA_cov)
+
+  coverage_table[4:6, 'Response'] <- rep('IBA coverage', 3)
+  coverage_table[4:6, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+  coverage_table[4:6, 'Coefficient'] <- round(summod_IBA_cov[["coefficients"]][1:3,1], 2)
+  coverage_table[4:6, 'Standard_error'] <- round(summod_IBA_cov[["coefficients"]][1:3,2], 2)
+  coverage_table[4:6, 'T_value'] <- round(summod_IBA_cov[["coefficients"]][1:3,4], 3)
+  coverage_table[4:6, 'p_value'] <- round(summod_IBA_cov[["coefficients"]][1:3, 5], 4)
+
+fittedplot(coverage, mod_IBA_cov)
+```
+```{r coverage_model_kable, warning = F, message = F}
+kable(coverage_table)
+```
+
+## Coverage contrasts
+
+```{r coverage_contrasts, warning = F, message = F}
+#GFAP
+cont_GFAP_cover <- summary(glht(mod_GFAP_cov, linfct=mcp(Group="Tukey")))
+kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
+                            Coefficient = round(cont_GFAP_cover[["test"]][["coefficients"]], 2),
+                            Standard_error = round(cont_GFAP_cover[["test"]][["sigma"]], 2),
+                            T_value = round(cont_GFAP_cover[["test"]][["tstat"]], 3),
+                            p_value = round(cont_GFAP_cover[["test"]][["pvalues"]],4)))
+
+# Little-prince plot with bregmas pooled - GFAP
+prince(coverage, coverage$GFAP_coverage, 'GFAP coverage')+
+  ylim(0,18)
+prince(coverage, coverage$GFAP_coverage_MomentsThreshold, 'GFAP coverage (Moments threshold)')
+
+# IBA
+cont_IBA_cover <- summary(glht(mod_IBA_cov, linfct=mcp(Group="Tukey")))
+kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
+                            Coefficient = round(cont_IBA_cover[["test"]][["coefficients"]], 2),
+                            Standard_error = round(cont_IBA_cover[["test"]][["sigma"]], 2),
+                            T_value = round(cont_IBA_cover[["test"]][["tstat"]], 3),
+                            p_value = round(cont_IBA_cover[["test"]][["pvalues"]],4)))
+
+# Little-prince plot with bregmas pooled - IBA
+prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
+  ylim(0,50)
+
+```
+
+```{r Faceted_princes, warning = F, message = F, fig.width=16, fig.height=6}
+# Little-prince plot with bregma faceting - GFAP
+prince(coverage, coverage$GFAP_coverage, 'GFAP coverage') +
+    facet_wrap(~Bregma, dir="v",ncol=4)+
+  ylim(0,18)
+prince(coverage, coverage$GFAP_coverage_MomentsThreshold, 'GFAP coverage (Moments threshold)') +
+    facet_wrap(~Bregma, dir="v",ncol=4)
+
+# Little-prince plot with bregma faceting - IBA
+prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
+    facet_wrap(~Bregma, dir="v",ncol=4)+
+  ylim(0,50)
+```
+
+
+## Correlation between IBA and GFAP coverage
+
+```{r IBA-GFAP correlations, warning = F, message = F}
+coverage$factor <- factor(1)
+regr <-  ggplot(coverage,aes(x=IBA_coverage,y=GFAP_coverage, Group=factor))+
+    stat_smooth(method="lm", col='black')+
+    geom_point(size = 3, col='black')+
+    ylab('GFAP coverage')+
+    xlab('IBA coverage')+
+    theme_minimal() +
+  themes +
+    theme(legend.position = "none")
+
+ggMarginal(regr, groupColour = TRUE, groupFill = T)
+
+corrcoverage <- cor.test(coverage$GFAP_coverage, coverage$IBA_coverage, method = 'spearman')
+
+kable(data.frame('Correlation' = c('GFAP-IBA coverage'),
+'Rho' = round(corrcoverage$estimate, 3),
+'p_value' = round(corrcoverage$p.value, 4)))
+```
