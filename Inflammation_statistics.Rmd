@@ -10,7 +10,6 @@ output:
     gallery: false
     highlight: tango
 ---
-
 # Importing
 
 ```{r setup, warning = F, message = F}
@@ -23,10 +22,13 @@ library(GGally)
 library(ggExtra)
 library(psych)
 library(lemon)
+library(ggrepel)
+
 
 # Data management 
 library(knitr)
 library(readxl)
+library(openxlsx)
 
 # Descriptive statistics
 library(ggplot2)
@@ -44,7 +46,7 @@ library(randomForest)
 library(randomForestExplainer)
 
 coverage <- read_excel("results_inflammation.xlsx", sheet = "coverage")
-whole <- read_excel("results_inflammation.xlsx", sheet = "QUINT")
+# whole <- read_excel("results_inflammation.xlsx", sheet = "QUINT")
 
 # Changing variable nature
 for(i in 6:24) {
@@ -58,24 +60,168 @@ coverage <- coverage[coverage$Group %in% c('Ctrl','Vehicle','CORT'),]
 coverage$Group <- factor(coverage$Group, levels = c('Ctrl', 'Vehicle', 'CORT'))
 coverage$Bregma <- factor(coverage$Bregma, levels = c('-2.1mm', '-0.8mm', '0.8mm', '2.1mm'))
 ```
+
+
+# QUINT macro
+
+```{r compile_quint_big_regions, warning = F, message = F}
+#------------GFAP---------------
+
+# Set the base directory where your files are located
+base_dir <- "D:/Microscopy/QUINT/C1_GFAP"
+row <- 1
+dataset <- data.frame(NA)
+
+# Loop over the IDs
+for (ID in 1:6) {
+  # Construct the directory path for each ID
+  dir_path <- file.path(base_dir, paste0("ID", ID), "Reports", paste0("GFAP_ID", ID, "_CustomRegions"))
+  
+  # Construct the file path for each Excel file
+  file_path <- file.path(dir_path, paste0("GFAP_ID", ID, "_CustomRegions_All.csv"))
+  
+  # Read the Excel file
+  dataloop <- read.table(file_path, sep = ";", dec = ".", header = T)
+  
+  if (nrow(dataloop) >= 10 && ncol(dataloop) >= 9) {
+    dataset[row:(row+9), 1:9] <- dataloop[1:10, 1:9]
+    row <- row + 10}
+  
+}
+
+dataset$ID_easy <- rep(coverage[1:6, "ID_easy"][[1]], each = 10)
+dataset$Group <- rep(coverage[1:6, "Group"][[1]], each = 10)
+dataset$NA. <- ifelse(dataset$NA. == 'Hippo',
+                      'Hippocampus',
+                      dataset$NA.)
+dataset$NA. <- ifelse(dataset$NA. == 'VentricularSystem',
+                      'Ventricular_System',
+                      dataset$NA.)
+dataset$Load <- dataset$Load*100
+GFAP_Customregions_Allslices <- dataset[,c(10,11,1:9)]
+
+write.xlsx(GFAP_Customregions_Allslices, "D:/Helsinki drive/OneDrive - University of Helsinki/____Trophin lab research/Thesis/Thesis_stat/GFAP_CustomRegions_AllAnimalsAllSlices.xlsx")
+
+#------------IBA---------------
+
+# Set the base directory where your files are located
+base_dir <- "D:/Microscopy/QUINT/C2_IBA"
+row <- 1
+dataset <- data.frame(NA)
+
+# Loop over the IDs
+for (ID in 1:6) {
+  # Construct the directory path for each ID
+  dir_path <- file.path(base_dir, paste0("ID", ID), "Reports", paste0("IBA_ID", ID, "_CustomRegions"))
+  
+  # Construct the file path for each Excel file
+  file_path <- file.path(dir_path, paste0("IBA_ID", ID, "_CustomRegions_All.csv"))
+  
+  # Read the Excel file
+  dataloop <- read.table(file_path, sep = ";", dec = ".", header = T)
+  
+  if (nrow(dataloop) >= 10 && ncol(dataloop) >= 9) {
+    dataset[row:(row+9), 1:9] <- dataloop[1:10, 1:9]
+    row <- row + 10}
+  
+}
+
+dataset$ID_easy <- rep(coverage[1:6, "ID_easy"][[1]], each = 10)
+dataset$Group <- rep(coverage[1:6, "Group"][[1]], each = 10)
+dataset$NA. <- ifelse(dataset$NA. == 'Hippo',
+                      'Hippocampus',
+                      dataset$NA.)
+dataset$NA. <- ifelse(dataset$NA. == 'VentricularSystem',
+                      'Ventricular_System',
+                      dataset$NA.)
+dataset$Load <- dataset$Load*100
+IBA_Customregions_Allslices <- dataset[,c(10,11,1:9)]
+
+
+write.xlsx(IBA_Customregions_Allslices, "D:/Helsinki drive/OneDrive - University of Helsinki/____Trophin lab research/Thesis/Thesis_stat/IBA_CustomRegions_AllAnimalsAllSlices.xlsx")
+```
+
+```{r compile_quint_small_regions, warning = F, message = F}
+#------------GFAP---------------
+
+# Set the base directory where your files are located
+base_dir <- "D:/Microscopy/QUINT/C1_GFAP"
+row <- 1
+dataset <- data.frame(NA)
+
+# Loop over the IDs
+for (ID in 1:6) {
+  # Construct the directory path for each ID
+  dir_path <- file.path(base_dir, paste0("ID", ID), "Reports", paste0("GFAP_ID", ID, "_RefAtlasRegions"))
+  
+  # Construct the file path for each Excel file
+  file_path <- file.path(dir_path, paste0("GFAP_ID", ID, "_RefAtlasRegions.csv"))
+  
+  # Read the Excel file
+  dataloop <- read.csv(file_path, quote  = "\"", sep = ";", dec = ".", header = T)
+  
+  if (nrow(dataloop) >= 1328) {
+    dataset[row:(row+1327), 1:10] <- dataloop[1:1328, 1:10]
+    row <- row + 1328}
+  
+}
+dataset$Load <- dataset$Load*100
+dataset$ID_easy <- rep(coverage[1:6, "ID_easy"][[1]], each = nrow(dataloop))
+dataset$Group <- rep(coverage[1:6, "Group"][[1]], each = nrow(dataloop))
+GFAP_RefAtlasRegions_Allslices <- dataset[,c(11,12,1:10)]
+
+write.xlsx(GFAP_RefAtlasRegions_Allslices, "D:/Helsinki drive/OneDrive - University of Helsinki/____Trophin lab research/Thesis/Thesis_stat/GFAP_RefAtlasRegions_AllAnimalsAllSlices.xlsx")
+
+#------------IBA---------------
+
+# Set the base directory where your files are located
+base_dir <- "D:/Microscopy/QUINT/C2_IBA"
+row <- 1
+dataset <- data.frame(NA)
+
+# Loop over the IDs
+for (ID in 1:6) {
+  # Construct the directory path for each ID
+  dir_path <- file.path(base_dir, paste0("ID", ID), "Reports", paste0("IBA_ID", ID, "_RefAtlasRegions"))
+  
+  # Construct the file path for each Excel file
+  file_path <- file.path(dir_path, paste0("IBA_ID", ID, "_RefAtlasRegions.csv"))
+  
+  # Read the Excel file
+  dataloop <- read.csv(file_path, quote  = "\"", sep = ";", dec = ".", header = T)
+  
+  if (nrow(dataloop) >= 1328) {
+    dataset[row:(row+1327), 1:10] <- dataloop[1:1328, 1:10]
+    row <- row + 1328}
+  
+}
+
+dataset$Load <- dataset$Load*100
+dataset$ID_easy <- rep(coverage[1:6, "ID_easy"][[1]], each = nrow(dataloop))
+dataset$Group <- rep(coverage[1:6, "Group"][[1]], each = nrow(dataloop))
+IBA_RefAtlasRegions_Allslices <- dataset[,c(11,12,1:10)]
+
+write.xlsx(IBA_RefAtlasRegions_Allslices, "D:/Helsinki drive/OneDrive - University of Helsinki/____Trophin lab research/Thesis/Thesis_stat/IBA_RefAtlasRegions_AllAnimalsAllSlices.xlsx")
+```
+
 # Custom-made functions
 
 ```{r myfunctions, warning = F, message = F}
 themes <- theme(axis.title.y = element_text(size = rel(1.5), 
-                                    angle = 90, 
-                                    margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
-        axis.title.x = element_text(size = rel(1.5), 
-                                    angle = 0, 
-                                    margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
-        legend.title = element_text(size = rel(1.5), face = "bold"),
-        legend.text = element_text(size = rel(1.5), angle = 0),
-        axis.text  = element_text(size = rel(1.5), angle = 0),
-        plot.title = element_text(color="darkgray",
-                                    size=18,
-                                    face="bold",
-                                    margin = ggplot2::margin(t = 0, r = 100, b = 35, l = 100)),
-          strip.text = element_text(size=rel(1.5),
-                                      face="bold")) 
+                                            angle = 90, 
+                                            margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+                axis.title.x = element_text(size = rel(1.5), 
+                                            angle = 0, 
+                                            margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
+                legend.title = element_text(size = rel(1.5), face = "bold"),
+                legend.text = element_text(size = rel(1.5), angle = 0),
+                axis.text  = element_text(size = rel(1.5), angle = 0),
+                plot.title = element_text(color="darkgray",
+                                          size=18,
+                                          face="bold",
+                                          margin = ggplot2::margin(t = 0, r = 100, b = 35, l = 100)),
+                strip.text = element_text(size=rel(1.5),
+                                          face="bold")) 
 
 prince <- function(data, variable, yaxis) {
   ggplot(data, aes(y=variable,x=Group, color=Group))+
@@ -138,45 +284,45 @@ fittedplot <- function(data, mod) {
   return(list(a,b,c))}
 
 coverage_table <- data.frame(Response = c(),
-                        Effect = c(),
-                        Coefficient = c(),
-                        Standard_error = c(),
-                        T_value = c(),
-                        p_value = c())
+                             Effect = c(),
+                             Coefficient = c(),
+                             Standard_error = c(),
+                             T_value = c(),
+                             p_value = c())
 ```
 
-# Inflammation signal coverage
+# Inflammation signal coverage - Fiji
 
 ## Coverage models
 
 ```{r coverage, warning = F, message = F, results='hide'}
 # GFAP
 mod_GFAP_cov <- lmer(GFAP_coverage~Group + (1|ID_easy),
-                                    data=coverage,
-                                    na.action=na.exclude)
+                     data=coverage,
+                     na.action=na.exclude)
 summod_GFAP_cov <- summary(mod_GFAP_cov)
 
-  coverage_table[1:3, 'Response'] <- rep('GFAP coverage', 3)
-  coverage_table[1:3, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
-  coverage_table[1:3, 'Coefficient'] <- round(summod_GFAP_cov[["coefficients"]][1:3,1], 2)
-  coverage_table[1:3, 'Standard_error'] <- round(summod_GFAP_cov[["coefficients"]][1:3,2], 2)
-  coverage_table[1:3, 'T_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3,4], 3)
-  coverage_table[1:3, 'p_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3, 5], 4)
+coverage_table[1:3, 'Response'] <- rep('GFAP coverage', 3)
+coverage_table[1:3, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+coverage_table[1:3, 'Coefficient'] <- round(summod_GFAP_cov[["coefficients"]][1:3,1], 2)
+coverage_table[1:3, 'Standard_error'] <- round(summod_GFAP_cov[["coefficients"]][1:3,2], 2)
+coverage_table[1:3, 'T_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3,4], 3)
+coverage_table[1:3, 'p_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3, 5], 4)
 
 fittedplot(coverage, mod_GFAP_cov)
 
 # IBA
 mod_IBA_cov <- lmer(IBA_coverage~Group + (1|ID_easy),
-                                    data=coverage,
-                                    na.action=na.exclude)
+                    data=coverage,
+                    na.action=na.exclude)
 summod_IBA_cov <- summary(mod_IBA_cov)
 
-  coverage_table[4:6, 'Response'] <- rep('IBA coverage', 3)
-  coverage_table[4:6, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
-  coverage_table[4:6, 'Coefficient'] <- round(summod_IBA_cov[["coefficients"]][1:3,1], 2)
-  coverage_table[4:6, 'Standard_error'] <- round(summod_IBA_cov[["coefficients"]][1:3,2], 2)
-  coverage_table[4:6, 'T_value'] <- round(summod_IBA_cov[["coefficients"]][1:3,4], 3)
-  coverage_table[4:6, 'p_value'] <- round(summod_IBA_cov[["coefficients"]][1:3, 5], 4)
+coverage_table[4:6, 'Response'] <- rep('IBA coverage', 3)
+coverage_table[4:6, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+coverage_table[4:6, 'Coefficient'] <- round(summod_IBA_cov[["coefficients"]][1:3,1], 2)
+coverage_table[4:6, 'Standard_error'] <- round(summod_IBA_cov[["coefficients"]][1:3,2], 2)
+coverage_table[4:6, 'T_value'] <- round(summod_IBA_cov[["coefficients"]][1:3,4], 3)
+coverage_table[4:6, 'p_value'] <- round(summod_IBA_cov[["coefficients"]][1:3, 5], 4)
 
 fittedplot(coverage, mod_IBA_cov)
 ```
@@ -190,10 +336,10 @@ kable(coverage_table)
 #GFAP
 cont_GFAP_cover <- summary(glht(mod_GFAP_cov, linfct=mcp(Group="Tukey")))
 kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
-                            Coefficient = round(cont_GFAP_cover[["test"]][["coefficients"]], 2),
-                            Standard_error = round(cont_GFAP_cover[["test"]][["sigma"]], 2),
-                            T_value = round(cont_GFAP_cover[["test"]][["tstat"]], 3),
-                            p_value = round(cont_GFAP_cover[["test"]][["pvalues"]],4)))
+                 Coefficient = round(cont_GFAP_cover[["test"]][["coefficients"]], 2),
+                 Standard_error = round(cont_GFAP_cover[["test"]][["sigma"]], 2),
+                 T_value = round(cont_GFAP_cover[["test"]][["tstat"]], 3),
+                 p_value = round(cont_GFAP_cover[["test"]][["pvalues"]],4)))
 
 # Little-prince plot with bregmas pooled - GFAP
 prince(coverage, coverage$GFAP_coverage, 'GFAP coverage')+
@@ -203,10 +349,10 @@ prince(coverage, coverage$GFAP_coverage_MomentsThreshold, 'GFAP coverage (Moment
 # IBA
 cont_IBA_cover <- summary(glht(mod_IBA_cov, linfct=mcp(Group="Tukey")))
 kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
-                            Coefficient = round(cont_IBA_cover[["test"]][["coefficients"]], 2),
-                            Standard_error = round(cont_IBA_cover[["test"]][["sigma"]], 2),
-                            T_value = round(cont_IBA_cover[["test"]][["tstat"]], 3),
-                            p_value = round(cont_IBA_cover[["test"]][["pvalues"]],4)))
+                 Coefficient = round(cont_IBA_cover[["test"]][["coefficients"]], 2),
+                 Standard_error = round(cont_IBA_cover[["test"]][["sigma"]], 2),
+                 T_value = round(cont_IBA_cover[["test"]][["tstat"]], 3),
+                 p_value = round(cont_IBA_cover[["test"]][["pvalues"]],4)))
 
 # Little-prince plot with bregmas pooled - IBA
 prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
@@ -217,14 +363,14 @@ prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
 ```{r Faceted_princes, warning = F, message = F, fig.width=16, fig.height=6}
 # Little-prince plot with bregma faceting - GFAP
 prince(coverage, coverage$GFAP_coverage, 'GFAP coverage') +
-    facet_wrap(~Bregma, dir="v",ncol=4)+
+  facet_wrap(~Bregma, dir="v",ncol=4)+
   ylim(0,18)
 prince(coverage, coverage$GFAP_coverage_MomentsThreshold, 'GFAP coverage (Moments threshold)') +
-    facet_wrap(~Bregma, dir="v",ncol=4)
+  facet_wrap(~Bregma, dir="v",ncol=4)
 
 # Little-prince plot with bregma faceting - IBA
 prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
-    facet_wrap(~Bregma, dir="v",ncol=4)+
+  facet_wrap(~Bregma, dir="v",ncol=4)+
   ylim(0,50)
 ```
 
@@ -234,19 +380,383 @@ prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
 ```{r IBA-GFAP correlations, warning = F, message = F}
 coverage$factor <- factor(1)
 regr <-  ggplot(coverage,aes(x=IBA_coverage,y=GFAP_coverage, Group=factor))+
-    stat_smooth(method="lm", col='black')+
-    geom_point(size = 3, col='black')+
-    ylab('GFAP coverage')+
-    xlab('IBA coverage')+
-    theme_minimal() +
+  stat_smooth(method="lm", col='black')+
+  geom_point(size = 3, col='black')+
+  ylab('GFAP coverage')+
+  xlab('IBA coverage')+
+  theme_minimal() +
   themes +
-    theme(legend.position = "none")
+  theme(legend.position = "none")
 
 ggMarginal(regr, groupColour = TRUE, groupFill = T)
 
 corrcoverage <- cor.test(coverage$GFAP_coverage, coverage$IBA_coverage, method = 'spearman')
 
 kable(data.frame('Correlation' = c('GFAP-IBA coverage'),
-'Rho' = round(corrcoverage$estimate, 3),
-'p_value' = round(corrcoverage$p.value, 4)))
+                 'Rho' = round(corrcoverage$estimate, 3),
+                 'p_value' = round(corrcoverage$p.value, 4)))
+```
+
+# Inflammation signal coverage - QUINT
+
+## Custom regions analysis
+
+```{r Custom_regions, warning = F, message = F}
+# Little-prince plot with region faceting - GFAP
+GFAP_Customregions_Allslices <- GFAP_Customregions_Allslices[GFAP_Customregions_Allslices$NA. %in% c("Cortex","Fibretracts","Hippocampus","Olfactory","Hypothalamus","Striatum_Pallidum","Thalamus","Ventricular_System"),]
+prince(GFAP_Customregions_Allslices, GFAP_Customregions_Allslices$Load, 'GFAP coverage') +
+  facet_wrap(~NA., dir="v",ncol=4)+
+  scale_color_manual(values=c('#785EF0', '#DC267F')) +
+  scale_fill_manual(values=c('#785EF0', '#DC267F'))+
+  ylim(0,12)
+
+
+# Little-prince plot with region faceting - IBA
+IBA_Customregions_Allslices <- IBA_Customregions_Allslices[IBA_Customregions_Allslices$NA. %in% c("Cortex","Fibretracts","Hippocampus","Olfactory","Hypothalamus","Striatum_Pallidum","Thalamus","Ventricular_System"),]
+prince(IBA_Customregions_Allslices, IBA_Customregions_Allslices$Load, 'IBA coverage') +
+  facet_wrap(~NA., dir="v",ncol=4)+
+  scale_color_manual(values=c('#785EF0', '#DC267F')) +
+  scale_fill_manual(values=c('#785EF0', '#DC267F'))+
+  ylim(0,2)
+```
+## Random forest analysis - GFAP
+
+```{r random_forest, warning = F, message = F}
+# Creation of wide data frame type
+foresthez <- GFAP_RefAtlasRegions_Allslices[c(1,4,12)]
+foresthez <- reshape(foresthez,idvar="ID_easy",
+                     timevar = "Region.name",
+                     direction="wide")
+foresthez$Group <- coverage$Group[1:6]
+
+# If you want to include the variables that have non-zero values for ALL the animals
+nullvekt <- rep(0, nrow(foresthez))
+jo_oszlopok_szamai <- rep(F, ncol(foresthez))
+
+for(x in 1:ncol(foresthez)) {
+  if(sum(foresthez[, x] == nullvekt) == 0) {
+    jo_oszlopok_szamai[x] <- T
+  }
+}
+
+foresthez_mutilated <- foresthez[jo_oszlopok_szamai]
+
+
+# # If you want to include the variables that have non-zero values for MORE THAN ONE animal
+# # Check for columns with non-zero values
+# non_zero_columns <- apply(foresthez[, -1], 2, function(x) sum(x != 0) > 0)
+# 
+# # Subset the data frame to keep only columns with non-zero values
+# foresthez_mutilated <- foresthez[, c(TRUE, non_zero_columns)]
+
+# creating a vector with nicer, shorter variable names
+vektor <- c()
+for(x in 1:(ncol(foresthez_mutilated)-2)) {
+  vektor[x] <- paste('a', x, sep = '')
+}
+
+# dataframe with modified variable names
+foresthez_mutilated_simple <- foresthez_mutilated
+colnames(foresthez_mutilated_simple) <- c('Animal', vektor, 'Group')
+
+# Ensuring there are no empty classes
+foresthez_mutilated_simple$Group <- factor(foresthez_mutilated_simple$Group, levels = c('Vehicle', 'CORT'))
+
+# helping printing out the random forest arguments that you can paste directly to the function
+row <- colnames(foresthez_mutilated_simple)
+current <- c()
+
+for(x in 1:(ncol(foresthez_mutilated)-1)) {
+  current[x] <- paste(row[x], "+")
+}
+
+paste(current, collapse = ' ')
+
+# Doing the random forest
+set.seed(20240418)
+forest <- randomForest(Group ~ a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12 + a13 + a14 + a15 + a16 + a17 + a18 + a19 + a20 + a21 + a22 + a23 + a24 + a25 + a26 + a27 + a28 + a29 + a30 + a31 + a32 + a33 + a34 + a35 + a36 + a37 + a38 + a39 + a40 + a41 + a42 + a43 + a44 + a45 + a46 + a47 + a48 + a49 + a50 + a51 + a52 + a53 + a54 + a55 + a56 + a57 + a58 + a59 + a60 + a61 + a62 + a63 + a64 + a65 + a66 + a67 + a68 + a69 + a70 + a71 + a72, 
+                       data=foresthez_mutilated_simple, 
+                       localImp = T, 
+                       s.e. = 1,
+                       ntree = 5000)
+
+#random forest impoartance
+importance_frame <- measure_importance(forest)
+
+# Adding needed variables in the importance frame
+importance_frame$color <- factor(ifelse(importance_frame$p_value <= 0.05, 
+                                        "darkviolet",
+                                        "turquoise4"))
+
+# Inputting proper brain area names in the importance frame
+column_names <- colnames(foresthez_mutilated)
+clean_column_names <- sub("^Load\\.", "", column_names)
+clean_column_names <- clean_column_names[-c(1,74)]
+importance_frame$label <- clean_column_names[as.numeric(sub("^a", "", importance_frame$variable))]
+
+# Plotting these
+ggplot(importance_frame,aes(y=no_of_nodes,x=gini_decrease, color=color)) +
+  geom_point(aes(size = importance_frame$no_of_trees)) +
+  ylab('Number of nodes')+
+  xlab("Gini decrease") +
+  theme_minimal() +
+  geom_label_repel(label= importance_frame$label,
+                   max.overlaps = 7,
+                   force = 1600) +
+  theme(axis.title.y = element_text(size = rel(1.5),
+                                    angle = 90,
+                                    margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.title.x = element_text(size = rel(1.5),
+                                    angle = 0,
+                                    margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
+        legend.title = element_text(size = rel(1.2), face = "bold"),
+        legend.text = element_text(size = rel(1.2), angle = 0),
+        axis.text  = element_text(size = rel(1.5), angle = 0)) +
+  scale_size(range = c(.1, 5), name="Number of trees") +
+  xlim(min(importance_frame$gini_decrease)*0.7,
+       max(importance_frame$gini_decrease)*1.2) +
+  ylim(min(importance_frame$no_of_nodes)*0.9,
+       max(importance_frame$no_of_nodes)*1.5)+
+  scale_color_manual(values=levels(importance_frame$color), name = "Significance", labels = c("p < 0,05", "p > 0,05")) +
+  geom_point(aes(size = importance_frame$no_of_trees)) +
+  guides(colour = guide_legend(override.aes = list(size = 3)))
+```
+
+
+```{r importance_plotting, warning = F, message = F, fig.width=16, fig.height=16}
+ggplot(importance_frame,aes(x=gini_decrease, y=  reorder(label, gini_decrease), fill = color)) +
+  geom_bar(stat="identity") +
+  xlab("Decrease in Gini index (classification accuracy)")+
+  ylab("Brain areas") +
+  theme_minimal()+
+  theme(axis.title.y = element_text(size = rel(2.5), 
+                                    angle = 90, 
+                                    margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.title.x = element_text(size = rel(2.5), 
+                                    angle = 0, 
+                                    margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
+        legend.title = element_text(size = rel(2.2), face = "bold"),
+        legend.text = element_text(size = rel(2.2), angle = 0),
+        axis.text  = element_text(size = rel(1.5), angle = 0)) +
+  scale_fill_manual(values=levels(importance_frame$color), name = "Significance", labels = c("p < 0,05", "p > 0,05"))
+```
+
+
+```{r boxplotting_significant_ones, warning = F, message = F, fig.width=16, fig.height=16}
+significants <- GFAP_RefAtlasRegions_Allslices[GFAP_RefAtlasRegions_Allslices$Region.name %in% importance_frame[importance_frame$color == 'darkviolet','label'],]
+
+prince(significants, significants$Load, 'GFAP coverage') +
+  facet_wrap(~Region.name, dir="v",ncol=3)+
+  scale_color_manual(values=c('#785EF0', '#DC267F')) +
+  scale_fill_manual(values=c('#785EF0', '#DC267F'))+
+  ylim(0,12.5)+
+  theme(axis.title.y = element_text(size = rel(2), 
+                                    angle = 90, 
+                                    margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.title.x = element_text(size = rel(2), 
+                                    angle = 0, 
+                                    margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
+        legend.title = element_text(size = rel(2), face = "bold"),
+        legend.text = element_text(size = rel(2), angle = 0),
+        axis.text  = element_text(size = rel(1.0), angle = 0))
+```
+
+```{r T_testing, warning = F, message = F}
+significant_area_vector <- importance_frame[importance_frame$color == 'darkviolet','label']
+load_table <- data.frame("Brain_area" = NA,
+                         "Estimate_Vehicle" = NA,
+                         "Estimate_CORT" =NA,
+                         "Standard_error" =NA, 
+                         "T_value" = NA, 
+                         "p_value" =NA)
+
+for(area in 1:length(significant_area_vector)) {
+  selected <- significants[significants$Region.name == significant_area_vector[area],]
+  
+  vehicle_data <- subset(selected, Group == "Vehicle")$Load
+  cort_data <- subset(selected, Group == "CORT")$Load
+  t_test_cort <- t.test(vehicle_data, cort_data)
+
+  load_table[area, 'Brain_area'] <- significant_area_vector[area]
+  load_table[area, 'Estimate_Vehicle'] <- round(t_test_cort$estimate[1], 2)
+  load_table[area, 'Estimate_CORT'] <- round(t_test_cort$estimate[2], 2)
+  load_table[area, 'Standard_error'] <- round(t_test_cort$stderr, 2)
+  load_table[area, 'T_value'] <- round(t_test_cort$statistic, 3)
+  load_table[area, 'p_value'] <- round(t_test_cort$p.value, 4)
+}
+
+load_table$p_value_adjusted <- p.adjust(load_table$p_value, method = "fdr")
+
+kable(load_table)
+```
+
+## Random forest analysis - IBA
+
+```{r random_forest_iba, warning = F, message = F}
+# Creation of wide data frame type
+foresthez <- IBA_RefAtlasRegions_Allslices[c(1,4,12)]
+foresthez <- reshape(foresthez,idvar="ID_easy",
+                     timevar = "Region.name",
+                     direction="wide")
+foresthez$Group <- coverage$Group[1:6]
+
+# If you want to include the variables that have non-zero values for ALL the animals
+nullvekt <- rep(0, nrow(foresthez))
+jo_oszlopok_szamai <- rep(F, ncol(foresthez))
+
+for(x in 1:ncol(foresthez)) {
+  if(sum(foresthez[, x] == nullvekt) == 0) {
+    jo_oszlopok_szamai[x] <- T
+  }
+}
+
+foresthez_mutilated <- foresthez[jo_oszlopok_szamai]
+
+
+# # If you want to include the variables that have non-zero values for MORE THAN ONE animal
+# # Check for columns with non-zero values
+# non_zero_columns <- apply(foresthez[, -1], 2, function(x) sum(x != 0) > 0)
+# 
+# # Subset the data frame to keep only columns with non-zero values
+# foresthez_mutilated <- foresthez[, c(TRUE, non_zero_columns)]
+
+# creating a vector with nicer, shorter variable names
+vektor <- c()
+for(x in 1:(ncol(foresthez_mutilated)-2)) {
+  vektor[x] <- paste('a', x, sep = '')
+}
+
+# dataframe with modified variable names
+foresthez_mutilated_simple <- foresthez_mutilated
+colnames(foresthez_mutilated_simple) <- c('Animal', vektor, 'Group')
+
+# Ensuring there are no empty classes
+foresthez_mutilated_simple$Group <- factor(foresthez_mutilated_simple$Group, levels = c('Vehicle', 'CORT'))
+
+# helping printing out the random forest arguments that you can paste directly to the function
+row <- colnames(foresthez_mutilated_simple)
+current <- c()
+
+for(x in 1:(ncol(foresthez_mutilated)-1)) {
+  current[x] <- paste(row[x], "+")
+}
+
+paste(current, collapse = ' ')
+
+# Doing the random forest
+set.seed(20240418)
+forest <- randomForest(Group ~ a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12 + a13 + a14 + a15 + a16 + a17 + a18 + a19 + a20 + a21 + a22 + a23 + a24 + a25 + a26 + a27 + a28 + a29 + a30 + a31 + a32 + a33 + a34 + a35 + a36 + a37 + a38 + a39 + a40 + a41 + a42 + a43 + a44 + a45 + a46 + a47 + a48 + a49 + a50 + a51 + a52 + a53 + a54 + a55 + a56 + a57 + a58 + a59 + a60 + a61 + a62 + a63 + a64 + a65 + a66 + a67 + a68 + a69 + a70 + a71 + a72 + a73 + a74 + a75 + a76 + a77 + a78 + a79 + a80 + a81 + a82 + a83 + a84 + a85 + a86 + a87 + a88 + a89 + a90 + a91 + a92 + a93 + a94, 
+                       data=foresthez_mutilated_simple, 
+                       localImp = T, 
+                       s.e. = 1,
+                       ntree = 5000)
+
+#random forest impoartance
+importance_frame <- measure_importance(forest)
+
+# Adding needed variables in the importance frame
+importance_frame$color <- factor(ifelse(importance_frame$p_value <= 0.05, 
+                                        "darkviolet",
+                                        "turquoise4"))
+
+# Inputting proper brain area names in the importance frame
+column_names <- colnames(foresthez_mutilated)
+clean_column_names <- sub("^Load\\.", "", column_names)
+clean_column_names <- clean_column_names[-c(1,ncol(clean_column_names))]
+importance_frame$label <- clean_column_names[as.numeric(sub("^a", "", importance_frame$variable))]
+
+# Plotting these
+ggplot(importance_frame,aes(y=no_of_nodes,x=gini_decrease, color=color)) +
+  geom_point(aes(size = importance_frame$no_of_trees)) +
+  ylab('Number of nodes')+
+  xlab("Gini decrease") +
+  theme_minimal() +
+  geom_label_repel(label= importance_frame$label,
+                   max.overlaps = 7,
+                   force = 1600) +
+  theme(axis.title.y = element_text(size = rel(1.5),
+                                    angle = 90,
+                                    margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.title.x = element_text(size = rel(1.5),
+                                    angle = 0,
+                                    margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
+        legend.title = element_text(size = rel(1.2), face = "bold"),
+        legend.text = element_text(size = rel(1.2), angle = 0),
+        axis.text  = element_text(size = rel(1.5), angle = 0)) +
+  scale_size(range = c(.1, 5), name="Number of trees") +
+  xlim(min(importance_frame$gini_decrease)*0.7,
+       max(importance_frame$gini_decrease)*1.2) +
+  ylim(min(importance_frame$no_of_nodes)*0.9,
+       max(importance_frame$no_of_nodes)*1.5)+
+  scale_color_manual(values=levels(importance_frame$color), name = "Significance", labels = c("p < 0,05", "p > 0,05")) +
+  geom_point(aes(size = importance_frame$no_of_trees)) +
+  guides(colour = guide_legend(override.aes = list(size = 3)))
+```
+
+
+```{r importance_plotting_iba, warning = F, message = F, fig.width=16, fig.height=20}
+ggplot(importance_frame,aes(x=gini_decrease, y=  reorder(label, gini_decrease), fill = color)) +
+  geom_bar(stat="identity") +
+  xlab("Decrease in Gini index (classification accuracy)")+
+  ylab("Brain areas") +
+  theme_minimal()+
+  theme(axis.title.y = element_text(size = rel(2.5), 
+                                    angle = 90, 
+                                    margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.title.x = element_text(size = rel(2.5), 
+                                    angle = 0, 
+                                    margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
+        legend.title = element_text(size = rel(2.2), face = "bold"),
+        legend.text = element_text(size = rel(2.2), angle = 0),
+        axis.text  = element_text(size = rel(1.5), angle = 0)) +
+  scale_fill_manual(values=levels(importance_frame$color), name = "Significance", labels = c("p < 0,05", "p > 0,05"))
+```
+
+```{r boxplotting_significant_ones_iba, warning = F, message = F, fig.width=16, fig.height=16}
+significants <- IBA_RefAtlasRegions_Allslices[IBA_RefAtlasRegions_Allslices$Region.name %in% importance_frame[importance_frame$color == 'darkviolet','label'],]
+
+prince(significants, significants$Load, 'IBA coverage') +
+  facet_wrap(~Region.name, dir="v",ncol=3)+
+  scale_color_manual(values=c('#785EF0', '#DC267F')) +
+  scale_fill_manual(values=c('#785EF0', '#DC267F'))+
+#  ylim(0,12.5)+
+  theme(axis.title.y = element_text(size = rel(2), 
+                                    angle = 90, 
+                                    margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.title.x = element_text(size = rel(2), 
+                                    angle = 0, 
+                                    margin = ggplot2::margin(t = 10, r = 0, b = 0, l = 0)),
+        legend.title = element_text(size = rel(2), face = "bold"),
+        legend.text = element_text(size = rel(2), angle = 0),
+        axis.text  = element_text(size = rel(1.0), angle = 0))+
+  ylim(0,2.5)
+```
+
+```{r T_testing_iba, warning = F, message = F}
+significant_area_vector <- importance_frame[importance_frame$color == 'darkviolet','label']
+load_table <- data.frame("Brain_area" = NA,
+                         "Estimate_Vehicle" = NA,
+                         "Estimate_CORT" =NA,
+                         "Standard_error" =NA, 
+                         "T_value" = NA, 
+                         "p_value" =NA)
+
+for(area in 1:length(significant_area_vector)) {
+  selected <- significants[significants$Region.name == significant_area_vector[area],]
+  
+  vehicle_data <- subset(selected, Group == "Vehicle")$Load
+  cort_data <- subset(selected, Group == "CORT")$Load
+  t_test_cort <- t.test(vehicle_data, cort_data)
+
+  load_table[area, 'Brain_area'] <- significant_area_vector[area]
+  load_table[area, 'Estimate_Vehicle'] <- round(t_test_cort$estimate[1], 2)
+  load_table[area, 'Estimate_CORT'] <- round(t_test_cort$estimate[2], 2)
+  load_table[area, 'Standard_error'] <- round(t_test_cort$stderr, 2)
+  load_table[area, 'T_value'] <- round(t_test_cort$statistic, 3)
+  load_table[area, 'p_value'] <- round(t_test_cort$p.value, 4)
+}
+
+load_table$p_value_adjusted <- p.adjust(load_table$p_value, method = "fdr")
+
+kable(load_table)
 ```
