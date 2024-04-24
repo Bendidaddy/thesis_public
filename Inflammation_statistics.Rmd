@@ -54,10 +54,10 @@ for(i in 6:24) {
 }
 
 # Exclude groups for now
-coverage <- coverage[coverage$Group %in% c('Ctrl','Vehicle','CORT'),]
+coverage <- coverage[coverage$Group %in% c('Ctrl','Vehicle','CORT', 'Pos_ctrl'),]
 
 # Taking care of level orders
-coverage$Group <- factor(coverage$Group, levels = c('Ctrl', 'Vehicle', 'CORT'))
+coverage$Group <- factor(coverage$Group, levels = c('Ctrl', 'Vehicle', 'CORT', 'Pos_ctrl'))
 coverage$Bregma <- factor(coverage$Bregma, levels = c('-2.1mm', '-0.8mm', '0.8mm', '2.1mm'))
 ```
 
@@ -73,7 +73,7 @@ row <- 1
 dataset <- data.frame(NA)
 
 # Loop over the IDs
-for (ID in 1:6) {
+for (ID in 1:9) {
   # Construct the directory path for each ID
   dir_path <- file.path(base_dir, paste0("ID", ID), "Reports", paste0("GFAP_ID", ID, "_CustomRegions"))
   
@@ -89,8 +89,8 @@ for (ID in 1:6) {
   
 }
 
-dataset$ID_easy <- rep(coverage[1:6, "ID_easy"][[1]], each = 10)
-dataset$Group <- rep(coverage[1:6, "Group"][[1]], each = 10)
+dataset$ID_easy <- rep(coverage[1:9, "ID_easy"][[1]], each = 10)
+dataset$Group <- rep(coverage[1:9, "Group"][[1]], each = 10)
 dataset$NA. <- ifelse(dataset$NA. == 'Hippo',
                       'Hippocampus',
                       dataset$NA.)
@@ -110,7 +110,7 @@ row <- 1
 dataset <- data.frame(NA)
 
 # Loop over the IDs
-for (ID in 1:6) {
+for (ID in 1:9) {
   # Construct the directory path for each ID
   dir_path <- file.path(base_dir, paste0("ID", ID), "Reports", paste0("IBA_ID", ID, "_CustomRegions"))
   
@@ -126,8 +126,8 @@ for (ID in 1:6) {
   
 }
 
-dataset$ID_easy <- rep(coverage[1:6, "ID_easy"][[1]], each = 10)
-dataset$Group <- rep(coverage[1:6, "Group"][[1]], each = 10)
+dataset$ID_easy <- rep(coverage[1:9, "ID_easy"][[1]], each = 10)
+dataset$Group <- rep(coverage[1:9, "Group"][[1]], each = 10)
 dataset$NA. <- ifelse(dataset$NA. == 'Hippo',
                       'Hippocampus',
                       dataset$NA.)
@@ -150,7 +150,7 @@ row <- 1
 dataset <- data.frame(NA)
 
 # Loop over the IDs
-for (ID in 1:6) {
+for (ID in 1:9) {
   # Construct the directory path for each ID
   dir_path <- file.path(base_dir, paste0("ID", ID), "Reports", paste0("GFAP_ID", ID, "_RefAtlasRegions"))
   
@@ -166,8 +166,8 @@ for (ID in 1:6) {
   
 }
 dataset$Load <- dataset$Load*100
-dataset$ID_easy <- rep(coverage[1:6, "ID_easy"][[1]], each = nrow(dataloop))
-dataset$Group <- rep(coverage[1:6, "Group"][[1]], each = nrow(dataloop))
+dataset$ID_easy <- rep(coverage[1:9, "ID_easy"][[1]], each = nrow(dataloop))
+dataset$Group <- rep(coverage[1:9, "Group"][[1]], each = nrow(dataloop))
 GFAP_RefAtlasRegions_Allslices <- dataset[,c(11,12,1:10)]
 
 write.xlsx(GFAP_RefAtlasRegions_Allslices, "D:/Helsinki drive/OneDrive - University of Helsinki/____Trophin lab research/Thesis/Thesis_stat/GFAP_RefAtlasRegions_AllAnimalsAllSlices.xlsx")
@@ -180,7 +180,7 @@ row <- 1
 dataset <- data.frame(NA)
 
 # Loop over the IDs
-for (ID in 1:6) {
+for (ID in 1:9) {
   # Construct the directory path for each ID
   dir_path <- file.path(base_dir, paste0("ID", ID), "Reports", paste0("IBA_ID", ID, "_RefAtlasRegions"))
   
@@ -197,12 +197,109 @@ for (ID in 1:6) {
 }
 
 dataset$Load <- dataset$Load*100
-dataset$ID_easy <- rep(coverage[1:6, "ID_easy"][[1]], each = nrow(dataloop))
-dataset$Group <- rep(coverage[1:6, "Group"][[1]], each = nrow(dataloop))
+dataset$ID_easy <- rep(coverage[1:9, "ID_easy"][[1]], each = nrow(dataloop))
+dataset$Group <- rep(coverage[1:9, "Group"][[1]], each = nrow(dataloop))
 IBA_RefAtlasRegions_Allslices <- dataset[,c(11,12,1:10)]
 
 write.xlsx(IBA_RefAtlasRegions_Allslices, "D:/Helsinki drive/OneDrive - University of Helsinki/____Trophin lab research/Thesis/Thesis_stat/IBA_RefAtlasRegions_AllAnimalsAllSlices.xlsx")
 ```
+
+```{r QUINT_sliceLoadCalculation, warning = F, message = F}
+#-----------GFAP----------
+
+# Initialize dataframe to store results
+results_df <- data.frame(ID = character(), Slice = character(), GFAP_SumObjectPixels = numeric(), GFAP_SumRegionPixels = numeric(), GFAP_Load = numeric(), stringsAsFactors = FALSE)
+
+# Define IDs and their corresponding number of files
+ids <- 1:9
+num_files <- rep(4, 9)  # default 4 files for each ID
+num_files[4] <- 2       # ID4 only has 2 files
+
+# Iterate over each ID
+for (id in ids) {
+  # Determine file count for the current ID
+  file_count <- num_files[id]
+  
+  # Initialize sums
+  total_object_pixels = 0
+  total_region_pixels = 0
+  
+  # Loop through each file for the current ID
+  for (i in 1:file_count) {
+    file_name <- sprintf("D:/Microscopy/QUINT/C1_GFAP/ID%d/Reports/GFAP_ID%d_RefAtlasRegions/GFAP_ID%d_RefAtlasRegions__s00%d.csv", id, id, id, i)
+    # Read the file
+    data <- read.csv(file_name, quote  = "\"", sep = ";", dec = ".", header = T)
+    
+    # Subset data where Region.pixels is non-zero
+    subset_data <- subset(data, Region.pixels != 0)
+    
+    # Calculate sums
+    total_object_pixels <- total_object_pixels + sum(subset_data$Object.pixels)
+    total_region_pixels <- total_region_pixels + sum(subset_data$Region.pixels)
+    # Calculate the ratio
+  ratio <- total_object_pixels / total_region_pixels
+  
+  # Append results to the dataframe
+  results_df <- rbind(results_df, data.frame(ID = paste("ID", id, sep=""), 
+                                             Slice = paste("Slice", i, sep=""),
+                                             GFAP_SumObjectPixels = total_object_pixels, 
+                                             GFAP_SumRegionPixels = total_region_pixels, 
+                                             GFAP_Load = ratio*100))
+  }
+}
+
+coverage_nonPCs <- coverage[coverage$Group %in% c('Ctrl', 'Vehicle', 'CORT'),]
+coverage_nonPCs <- coverage_nonPCs[order(coverage_nonPCs$ID_easy),]
+coverage_nonPCs <- cbind(coverage_nonPCs[c(1:14,17:36),], results_df[,3:5])
+
+#-----------IBA----------
+
+# Initialize dataframe to store results
+results_df <- data.frame(ID = character(), Slice = character(), IBA_SumObjectPixels = numeric(), IBA_SumRegionPixels = numeric(), IBA_Load = numeric(), stringsAsFactors = FALSE)
+
+# Define IDs and their corresponding number of files
+ids <- 1:9
+num_files <- rep(4, 9)  # default 4 files for each ID
+num_files[4] <- 2       # ID4 only has 2 files
+
+# Iterate over each ID
+for (id in ids) {
+  # Determine file count for the current ID
+  file_count <- num_files[id]
+  
+  # Initialize sums
+  total_object_pixels = 0
+  total_region_pixels = 0
+  
+  # Loop through each file for the current ID
+  for (i in 1:file_count) {
+    file_name <- sprintf("D:/Microscopy/QUINT/C2_IBA/ID%d/Reports/IBA_ID%d_RefAtlasRegions/IBA_ID%d_RefAtlasRegions__s00%d.csv", id, id, id, i)
+    # Read the file
+    data <- read.csv(file_name, quote  = "\"", sep = ";", dec = ".", header = T)
+    
+    # Subset data where Region.pixels is non-zero
+    subset_data <- subset(data, Region.pixels != 0)
+    
+    # Calculate sums
+    total_object_pixels <- total_object_pixels + sum(subset_data$Object.pixels)
+    total_region_pixels <- total_region_pixels + sum(subset_data$Region.pixels)
+    # Calculate the ratio
+    ratio <- total_object_pixels / total_region_pixels
+    
+    # Append results to the dataframe
+    results_df <- rbind(results_df, data.frame(ID = paste("ID", id, sep=""), 
+                                               Slice = paste("Slice", i, sep=""),
+                                               IBA_SumObjectPixels = total_object_pixels, 
+                                               IBA_SumRegionPixels = total_region_pixels, 
+                                               IBA_Load = ratio*100))
+  }
+}
+
+coverage_nonPCs <- cbind(coverage_nonPCs, results_df[,3:5])
+
+```
+
+
 
 # Custom-made functions
 
@@ -298,7 +395,7 @@ coverage_table <- data.frame(Response = c(),
 ```{r coverage, warning = F, message = F, results='hide'}
 # GFAP
 mod_GFAP_cov <- lmer(GFAP_coverage~Group + (1|ID_easy),
-                     data=coverage,
+                     data=coverage[!coverage$Group == 'Pos_ctrl',],
                      na.action=na.exclude)
 summod_GFAP_cov <- summary(mod_GFAP_cov)
 
@@ -309,11 +406,11 @@ coverage_table[1:3, 'Standard_error'] <- round(summod_GFAP_cov[["coefficients"]]
 coverage_table[1:3, 'T_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3,4], 3)
 coverage_table[1:3, 'p_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3, 5], 4)
 
-fittedplot(coverage, mod_GFAP_cov)
+fittedplot(coverage[!coverage$Group == 'Pos_ctrl',], mod_GFAP_cov)
 
 # IBA
 mod_IBA_cov <- lmer(IBA_coverage~Group + (1|ID_easy),
-                    data=coverage,
+                    data=coverage[!coverage$Group == 'Pos_ctrl',],
                     na.action=na.exclude)
 summod_IBA_cov <- summary(mod_IBA_cov)
 
@@ -324,7 +421,7 @@ coverage_table[4:6, 'Standard_error'] <- round(summod_IBA_cov[["coefficients"]][
 coverage_table[4:6, 'T_value'] <- round(summod_IBA_cov[["coefficients"]][1:3,4], 3)
 coverage_table[4:6, 'p_value'] <- round(summod_IBA_cov[["coefficients"]][1:3, 5], 4)
 
-fittedplot(coverage, mod_IBA_cov)
+fittedplot(coverage[!coverage$Group == 'Pos_ctrl',], mod_IBA_cov)
 ```
 ```{r coverage_model_kable, warning = F, message = F}
 kable(coverage_table)
@@ -364,14 +461,16 @@ prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
 # Little-prince plot with bregma faceting - GFAP
 prince(coverage, coverage$GFAP_coverage, 'GFAP coverage') +
   facet_wrap(~Bregma, dir="v",ncol=4)+
-  ylim(0,18)
+  ylim(0,18) +
+  scale_fill_manual(values=c( '#DC267F','#648FFF', '#FE6100','#785EF0'))
 prince(coverage, coverage$GFAP_coverage_MomentsThreshold, 'GFAP coverage (Moments threshold)') +
   facet_wrap(~Bregma, dir="v",ncol=4)
 
 # Little-prince plot with bregma faceting - IBA
 prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
   facet_wrap(~Bregma, dir="v",ncol=4)+
-  ylim(0,50)
+  ylim(0,50) +
+  scale_fill_manual(values=c( '#DC267F','#648FFF', '#FE6100','#785EF0'))
 ```
 
 
@@ -397,17 +496,141 @@ kable(data.frame('Correlation' = c('GFAP-IBA coverage'),
                  'p_value' = round(corrcoverage$p.value, 4)))
 ```
 
-# Inflammation signal coverage - QUINT
+# Correlation Fiji and QUINT
+
+```{r Fiji-QUINT_GFAP correlations, warning = F, message = F}
+#--------------GFAP------------------------
+coverage_nonPCs$factor <- factor(1)
+regr <-  ggplot(coverage_nonPCs,aes(x=GFAP_coverage,y=GFAP_Load, Group=factor))+
+  stat_smooth(method="lm", col='black')+
+  geom_point(size = 3, col='black')+
+  ylab('GFAP coverage (QUINT)')+
+  xlab('GFAP coverage (Fiji)')+
+  theme_minimal() +
+  themes +
+  theme(legend.position = "none")
+
+ggMarginal(regr, groupColour = TRUE, groupFill = T)
+
+corrcoverage <- cor.test(coverage_nonPCs$GFAP_coverage, coverage_nonPCs$GFAP_Load, method = 'spearman')
+
+kable(data.frame('Correlation' = c('Fiji-QUINT GFAP coverage'),
+                 'Rho' = round(corrcoverage$estimate, 3),
+                 'p_value' = round(corrcoverage$p.value, 4)))
+```
+
+```{r Fiji-QUINT_IBA correlations, warning = F, message = F}
+
+#--------------IBA------------------------
+regr <-  ggplot(coverage_nonPCs,aes(x=IBA_coverage,y=IBA_Load, Group=factor))+
+  stat_smooth(method="lm", col='black')+
+  geom_point(size = 3, col='black')+
+  ylab('IBA coverage (QUINT)')+
+  xlab('IBA coverage (Fiji)')+
+  theme_minimal() +
+  themes +
+  theme(legend.position = "none")
+
+ggMarginal(regr, groupColour = TRUE, groupFill = T)
+
+corrcoverage <- cor.test(coverage_nonPCs$IBA_coverage, coverage_nonPCs$IBA_Load, method = 'spearman')
+
+kable(data.frame('Correlation' = c('Fiji-QUINT IBA coverage'),
+                 'Rho' = round(corrcoverage$estimate, 3),
+                 'p_value' = round(corrcoverage$p.value, 4)))
+```
+
+
+# Inflammation signal coverage by slice - QUINT
+
+## Coverage models
+
+```{r coverage_QUINT, warning = F, message = F, results='hide'}
+# GFAP
+mod_GFAP_cov <- lmer(GFAP_Load~Group + (1|ID_easy),
+                     data=coverage_nonPCs,
+                     na.action=na.exclude)
+summod_GFAP_cov <- summary(mod_GFAP_cov)
+
+coverage_table[1:3, 'Response'] <- rep('GFAP coverage', 3)
+coverage_table[1:3, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+coverage_table[1:3, 'Coefficient'] <- round(summod_GFAP_cov[["coefficients"]][1:3,1], 2)
+coverage_table[1:3, 'Standard_error'] <- round(summod_GFAP_cov[["coefficients"]][1:3,2], 2)
+coverage_table[1:3, 'T_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3,4], 3)
+coverage_table[1:3, 'p_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3, 5], 4)
+
+fittedplot(coverage_nonPCs, mod_GFAP_cov)
+
+# IBA
+mod_IBA_cov <- lmer(IBA_Load~Group + (1|ID_easy),
+                    data=coverage_nonPCs,
+                    na.action=na.exclude)
+summod_IBA_cov <- summary(mod_IBA_cov)
+
+coverage_table[4:6, 'Response'] <- rep('IBA coverage', 3)
+coverage_table[4:6, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+coverage_table[4:6, 'Coefficient'] <- round(summod_IBA_cov[["coefficients"]][1:3,1], 2)
+coverage_table[4:6, 'Standard_error'] <- round(summod_IBA_cov[["coefficients"]][1:3,2], 2)
+coverage_table[4:6, 'T_value'] <- round(summod_IBA_cov[["coefficients"]][1:3,4], 3)
+coverage_table[4:6, 'p_value'] <- round(summod_IBA_cov[["coefficients"]][1:3, 5], 4)
+
+fittedplot(coverage_nonPCs, mod_IBA_cov)
+```
+```{r coverage_model_kable_QUINT, warning = F, message = F}
+kable(coverage_table)
+```
+
+## Coverage contrasts
+
+```{r coverage_contrasts_QUINT, warning = F, message = F}
+#GFAP
+cont_GFAP_cover <- summary(glht(mod_GFAP_cov, linfct=mcp(Group="Tukey")))
+kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
+                 Coefficient = round(cont_GFAP_cover[["test"]][["coefficients"]], 2),
+                 Standard_error = round(cont_GFAP_cover[["test"]][["sigma"]], 2),
+                 T_value = round(cont_GFAP_cover[["test"]][["tstat"]], 3),
+                 p_value = round(cont_GFAP_cover[["test"]][["pvalues"]],4)))
+
+# Little-prince plot with bregmas pooled - GFAP
+prince(coverage_nonPCs, coverage_nonPCs$GFAP_Load, 'GFAP coverage')+
+  ylim(0,6.25)
+
+# IBA
+cont_IBA_cover <- summary(glht(mod_IBA_cov, linfct=mcp(Group="Tukey")))
+kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
+                 Coefficient = round(cont_IBA_cover[["test"]][["coefficients"]], 2),
+                 Standard_error = round(cont_IBA_cover[["test"]][["sigma"]], 2),
+                 T_value = round(cont_IBA_cover[["test"]][["tstat"]], 3),
+                 p_value = round(cont_IBA_cover[["test"]][["pvalues"]],4)))
+
+# Little-prince plot with bregmas pooled - IBA
+prince(coverage_nonPCs, coverage_nonPCs$IBA_Load, 'IBA coverage')+
+  ylim(0,1.75)
+```
+
+```{r Faceted_princes_QUINT, warning = F, message = F, fig.width=16, fig.height=6}
+# Little-prince plot with bregma faceting - GFAP
+prince(coverage_nonPCs, coverage_nonPCs$GFAP_Load, 'GFAP coverage') +
+  facet_wrap(~Bregma, dir="v",ncol=4)+
+  ylim(0,6.25)
+
+# Little-prince plot with bregma faceting - IBA
+prince(coverage_nonPCs, coverage_nonPCs$IBA_Load, 'IBA coverage') +
+  facet_wrap(~Bregma, dir="v",ncol=4)+
+  ylim(0,1.75)
+```
+
+# Inflammation signal coverage for regions - QUINT
 
 ## Custom regions analysis
 
-```{r Custom_regions, warning = F, message = F}
+```{r Custom_regions, warning = F, message = F, fig.width=11}
 # Little-prince plot with region faceting - GFAP
 GFAP_Customregions_Allslices <- GFAP_Customregions_Allslices[GFAP_Customregions_Allslices$NA. %in% c("Cortex","Fibretracts","Hippocampus","Olfactory","Hypothalamus","Striatum_Pallidum","Thalamus","Ventricular_System"),]
 prince(GFAP_Customregions_Allslices, GFAP_Customregions_Allslices$Load, 'GFAP coverage') +
   facet_wrap(~NA., dir="v",ncol=4)+
-  scale_color_manual(values=c('#785EF0', '#DC267F')) +
-  scale_fill_manual(values=c('#785EF0', '#DC267F'))+
+  scale_color_manual(values=c('#648FFF', '#785EF0', '#DC267F')) +
+  scale_fill_manual(values=c('#648FFF', '#785EF0', '#DC267F'))+
   ylim(0,12)
 
 
@@ -415,32 +638,43 @@ prince(GFAP_Customregions_Allslices, GFAP_Customregions_Allslices$Load, 'GFAP co
 IBA_Customregions_Allslices <- IBA_Customregions_Allslices[IBA_Customregions_Allslices$NA. %in% c("Cortex","Fibretracts","Hippocampus","Olfactory","Hypothalamus","Striatum_Pallidum","Thalamus","Ventricular_System"),]
 prince(IBA_Customregions_Allslices, IBA_Customregions_Allslices$Load, 'IBA coverage') +
   facet_wrap(~NA., dir="v",ncol=4)+
-  scale_color_manual(values=c('#785EF0', '#DC267F')) +
-  scale_fill_manual(values=c('#785EF0', '#DC267F'))+
+  scale_color_manual(values=c('#648FFF', '#785EF0', '#DC267F')) +
+  scale_fill_manual(values=c('#648FFF', '#785EF0', '#DC267F'))+
   ylim(0,2)
 ```
+
 ## Random forest analysis - GFAP
 
 ```{r random_forest, warning = F, message = F}
-# Creation of wide data frame type
-foresthez <- GFAP_RefAtlasRegions_Allslices[c(1,4,12)]
-foresthez <- reshape(foresthez,idvar="ID_easy",
+# Creation of wide data frame type for exclusion of zero-area brain regions
+subsetted <- GFAP_RefAtlasRegions_Allslices[GFAP_RefAtlasRegions_Allslices$Group %in% c('Vehicle', 'CORT'),]
+filter <- subsetted[, c(1,4,5)]
+
+filter <- reshape(filter,idvar="ID_easy",
                      timevar = "Region.name",
                      direction="wide")
-foresthez$Group <- coverage$Group[1:6]
+filter$Group <- coverage$Group[1:6]
 
 # If you want to include the variables that have non-zero values for ALL the animals
-nullvekt <- rep(0, nrow(foresthez))
-jo_oszlopok_szamai <- rep(F, ncol(foresthez))
+nullvekt <- rep(0, nrow(filter))
+jo_oszlopok_szamai <- rep(F, ncol(filter))
 
-for(x in 1:ncol(foresthez)) {
-  if(sum(foresthez[, x] == nullvekt) == 0) {
+for(x in 1:ncol(filter)) {
+  if(sum(filter[, x] == nullvekt) == 0) {
     jo_oszlopok_szamai[x] <- T
   }
 }
 
-foresthez_mutilated <- foresthez[jo_oszlopok_szamai]
+filter_mutilated <- filter[jo_oszlopok_szamai]
+column_names <- colnames(filter_mutilated)
+clean_column_names <- sub("^Region.pixels\\.", "", column_names)
 
+# Now create the actual data.frame containing the Load*100 values for non-zero-area regions
+foresthez <- subsetted[subsetted$Region.name %in% clean_column_names, c(1,4,12)]
+foresthez <- reshape(foresthez,idvar="ID_easy",
+                     timevar = "Region.name",
+                     direction="wide")
+foresthez$Group <- coverage$Group[1:6]
 
 # # If you want to include the variables that have non-zero values for MORE THAN ONE animal
 # # Check for columns with non-zero values
@@ -451,12 +685,12 @@ foresthez_mutilated <- foresthez[jo_oszlopok_szamai]
 
 # creating a vector with nicer, shorter variable names
 vektor <- c()
-for(x in 1:(ncol(foresthez_mutilated)-2)) {
+for(x in 1:(ncol(foresthez)-2)) {
   vektor[x] <- paste('a', x, sep = '')
 }
 
 # dataframe with modified variable names
-foresthez_mutilated_simple <- foresthez_mutilated
+foresthez_mutilated_simple <- foresthez
 colnames(foresthez_mutilated_simple) <- c('Animal', vektor, 'Group')
 
 # Ensuring there are no empty classes
@@ -466,7 +700,7 @@ foresthez_mutilated_simple$Group <- factor(foresthez_mutilated_simple$Group, lev
 row <- colnames(foresthez_mutilated_simple)
 current <- c()
 
-for(x in 1:(ncol(foresthez_mutilated)-1)) {
+for(x in 1:(ncol(foresthez)-1)) {
   current[x] <- paste(row[x], "+")
 }
 
@@ -474,11 +708,11 @@ paste(current, collapse = ' ')
 
 # Doing the random forest
 set.seed(20240418)
-forest <- randomForest(Group ~ a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12 + a13 + a14 + a15 + a16 + a17 + a18 + a19 + a20 + a21 + a22 + a23 + a24 + a25 + a26 + a27 + a28 + a29 + a30 + a31 + a32 + a33 + a34 + a35 + a36 + a37 + a38 + a39 + a40 + a41 + a42 + a43 + a44 + a45 + a46 + a47 + a48 + a49 + a50 + a51 + a52 + a53 + a54 + a55 + a56 + a57 + a58 + a59 + a60 + a61 + a62 + a63 + a64 + a65 + a66 + a67 + a68 + a69 + a70 + a71 + a72, 
+forest <- randomForest(Group ~ a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12 + a13 + a14 + a15 + a16 + a17 + a18 + a19 + a20 + a21 + a22 + a23 + a24 + a25 + a26 + a27 + a28 + a29 + a30 + a31 + a32 + a33 + a34 + a35 + a36 + a37 + a38 + a39 + a40 + a41 + a42 + a43 + a44 + a45 + a46 + a47 + a48 + a49 + a50 + a51 + a52 + a53 + a54 + a55 + a56 + a57 + a58 + a59 + a60 + a61 + a62 + a63 + a64 + a65 + a66 + a67 + a68 + a69 + a70 + a71 + a72 + a73 + a74 + a75 + a76 + a77 + a78 + a79 + a80 + a81 + a82 + a83 + a84 + a85 + a86 + a87 + a88 + a89 + a90 + a91 + a92 + a93 + a94, 
                        data=foresthez_mutilated_simple, 
                        localImp = T, 
                        s.e. = 1,
-                       ntree = 5000)
+                       ntree = 10000)
 
 #random forest impoartance
 importance_frame <- measure_importance(forest)
@@ -489,7 +723,7 @@ importance_frame$color <- factor(ifelse(importance_frame$p_value <= 0.05,
                                         "turquoise4"))
 
 # Inputting proper brain area names in the importance frame
-column_names <- colnames(foresthez_mutilated)
+column_names <- colnames(foresthez)
 clean_column_names <- sub("^Load\\.", "", column_names)
 clean_column_names <- clean_column_names[-c(1,74)]
 importance_frame$label <- clean_column_names[as.numeric(sub("^a", "", importance_frame$variable))]
@@ -523,7 +757,7 @@ ggplot(importance_frame,aes(y=no_of_nodes,x=gini_decrease, color=color)) +
 ```
 
 
-```{r importance_plotting, warning = F, message = F, fig.width=16, fig.height=16}
+```{r importance_plotting, warning = F, message = F, fig.width=16, fig.height=20}
 ggplot(importance_frame,aes(x=gini_decrease, y=  reorder(label, gini_decrease), fill = color)) +
   geom_bar(stat="identity") +
   xlab("Decrease in Gini index (classification accuracy)")+
@@ -543,7 +777,7 @@ ggplot(importance_frame,aes(x=gini_decrease, y=  reorder(label, gini_decrease), 
 
 
 ```{r boxplotting_significant_ones, warning = F, message = F, fig.width=16, fig.height=16}
-significants <- GFAP_RefAtlasRegions_Allslices[GFAP_RefAtlasRegions_Allslices$Region.name %in% importance_frame[importance_frame$color == 'darkviolet','label'],]
+significants <- subsetted[subsetted$Region.name %in% importance_frame[importance_frame$color == 'darkviolet','label'],]
 
 prince(significants, significants$Load, 'GFAP coverage') +
   facet_wrap(~Region.name, dir="v",ncol=3)+
@@ -593,24 +827,35 @@ kable(load_table)
 ## Random forest analysis - IBA
 
 ```{r random_forest_iba, warning = F, message = F}
-# Creation of wide data frame type
-foresthez <- IBA_RefAtlasRegions_Allslices[c(1,4,12)]
-foresthez <- reshape(foresthez,idvar="ID_easy",
+# Creation of wide data frame type for exclusion of zero-area brain regions
+subsetted <- IBA_RefAtlasRegions_Allslices[IBA_RefAtlasRegions_Allslices$Group %in% c('Vehicle', 'CORT'), ]
+filter <- subsetted[,c(1,4,5)]
+
+filter <- reshape(filter,idvar="ID_easy",
                      timevar = "Region.name",
                      direction="wide")
-foresthez$Group <- coverage$Group[1:6]
+filter$Group <- coverage$Group[1:6]
 
 # If you want to include the variables that have non-zero values for ALL the animals
-nullvekt <- rep(0, nrow(foresthez))
-jo_oszlopok_szamai <- rep(F, ncol(foresthez))
+nullvekt <- rep(0, nrow(filter))
+jo_oszlopok_szamai <- rep(F, ncol(filter))
 
-for(x in 1:ncol(foresthez)) {
-  if(sum(foresthez[, x] == nullvekt) == 0) {
+for(x in 1:ncol(filter)) {
+  if(sum(filter[, x] == nullvekt) == 0) {
     jo_oszlopok_szamai[x] <- T
   }
 }
 
-foresthez_mutilated <- foresthez[jo_oszlopok_szamai]
+filter_mutilated <- filter[jo_oszlopok_szamai]
+column_names <- colnames(filter_mutilated)
+clean_column_names <- sub("^Region.pixels\\.", "", column_names)
+
+# Now create the actual data.frame containing the Load*100 values for non-zero-area regions
+foresthez <- subsetted[subsetted$Region.name %in% clean_column_names, c(1,4,12)]
+foresthez <- reshape(foresthez,idvar="ID_easy",
+                     timevar = "Region.name",
+                     direction="wide")
+foresthez$Group <- coverage$Group[1:6]
 
 
 # # If you want to include the variables that have non-zero values for MORE THAN ONE animal
@@ -622,12 +867,12 @@ foresthez_mutilated <- foresthez[jo_oszlopok_szamai]
 
 # creating a vector with nicer, shorter variable names
 vektor <- c()
-for(x in 1:(ncol(foresthez_mutilated)-2)) {
+for(x in 1:(ncol(foresthez)-2)) {
   vektor[x] <- paste('a', x, sep = '')
 }
 
 # dataframe with modified variable names
-foresthez_mutilated_simple <- foresthez_mutilated
+foresthez_mutilated_simple <- foresthez
 colnames(foresthez_mutilated_simple) <- c('Animal', vektor, 'Group')
 
 # Ensuring there are no empty classes
@@ -637,7 +882,7 @@ foresthez_mutilated_simple$Group <- factor(foresthez_mutilated_simple$Group, lev
 row <- colnames(foresthez_mutilated_simple)
 current <- c()
 
-for(x in 1:(ncol(foresthez_mutilated)-1)) {
+for(x in 1:(ncol(foresthez)-1)) {
   current[x] <- paste(row[x], "+")
 }
 
@@ -649,7 +894,7 @@ forest <- randomForest(Group ~ a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 
                        data=foresthez_mutilated_simple, 
                        localImp = T, 
                        s.e. = 1,
-                       ntree = 5000)
+                       ntree = 10000)
 
 #random forest impoartance
 importance_frame <- measure_importance(forest)
@@ -660,7 +905,7 @@ importance_frame$color <- factor(ifelse(importance_frame$p_value <= 0.05,
                                         "turquoise4"))
 
 # Inputting proper brain area names in the importance frame
-column_names <- colnames(foresthez_mutilated)
+column_names <- colnames(foresthez)
 clean_column_names <- sub("^Load\\.", "", column_names)
 clean_column_names <- clean_column_names[-c(1,ncol(clean_column_names))]
 importance_frame$label <- clean_column_names[as.numeric(sub("^a", "", importance_frame$variable))]
@@ -713,7 +958,7 @@ ggplot(importance_frame,aes(x=gini_decrease, y=  reorder(label, gini_decrease), 
 ```
 
 ```{r boxplotting_significant_ones_iba, warning = F, message = F, fig.width=16, fig.height=16}
-significants <- IBA_RefAtlasRegions_Allslices[IBA_RefAtlasRegions_Allslices$Region.name %in% importance_frame[importance_frame$color == 'darkviolet','label'],]
+significants <- subsetted[subsetted$Region.name %in% importance_frame[importance_frame$color == 'darkviolet','label'],]
 
 prince(significants, significants$Load, 'IBA coverage') +
   facet_wrap(~Region.name, dir="v",ncol=3)+
@@ -760,3 +1005,4 @@ load_table$p_value_adjusted <- p.adjust(load_table$p_value, method = "fdr")
 
 kable(load_table)
 ```
+

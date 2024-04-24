@@ -1,6 +1,6 @@
 // FOR C1---------------------------GFAP
 
-nSubjects = 6;
+nSubjects = 9;
 nnSlices = 4;
 
 // Loop over subjects and slices
@@ -29,7 +29,7 @@ for (subject = 1; subject <= nSubjects; subject++) {
 
 
 // FOR C2-----------------------------IBA
-nSubjects = 6;
+nSubjects = 9;
 nnSlices = 4;
 
 // Loop over subjects and slices
