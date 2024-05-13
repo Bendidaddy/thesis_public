@@ -54,10 +54,10 @@ for(i in 6:24) {
 }
 
 # Exclude groups for now
-coverage <- coverage[coverage$Group %in% c('Ctrl','Vehicle','CORT', 'Pos_ctrl'),]
+coverage <- coverage[coverage$Group %in% c('Control','Window','Window+CORT', 'Pos_Control'),]
 
 # Taking care of level orders
-coverage$Group <- factor(coverage$Group, levels = c('Ctrl', 'Vehicle', 'CORT', 'Pos_ctrl'))
+coverage$Group <- factor(coverage$Group, levels = c('Control', 'Window', 'Window+CORT', 'Pos_Control'))
 coverage$Bregma <- factor(coverage$Bregma, levels = c('-2.1mm', '-0.8mm', '0.8mm', '2.1mm'))
 ```
 
@@ -248,7 +248,7 @@ for (id in ids) {
   }
 }
 
-coverage_nonPCs <- coverage[coverage$Group %in% c('Ctrl', 'Vehicle', 'CORT'),]
+coverage_nonPCs <- coverage[coverage$Group %in% c('Control', 'Window', 'Window+CORT'),]
 coverage_nonPCs <- coverage_nonPCs[order(coverage_nonPCs$ID_easy),]
 coverage_nonPCs <- cbind(coverage_nonPCs[c(1:14,17:36),], results_df[,3:5])
 
@@ -353,6 +353,58 @@ prince <- function(data, variable, yaxis) {
     scale_fill_manual(values=c('#648FFF', '#785EF0', '#DC267F', '#FE6100', '#1EAD1E'))+
     guides(fill = FALSE)}
 
+box <- function(data, variable, yaxis) {
+  ggplot(data, aes(y=variable,x=Group, color=Group))+
+    geom_boxplot(aes(x = Group, y = variable, fill = Group),
+                 outlier.shape = NA, alpha = .6, width = .6, colour = "black")+
+    geom_point(position = position_jitter(width = .18),
+               size = 6,
+               shape = 20)+
+    ylab(yaxis)+
+    theme_minimal() +
+    theme(axis.title.y = element_text(size = rel(1.7), 
+                                      angle = 90, 
+                                      margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+          axis.title.x = element_blank(),
+          legend.title = element_text(size = rel(1.7), face = "bold"),
+          legend.text = element_text(size = rel(1.7), angle = 0),
+          axis.text.x  = element_blank(),
+          axis.text.y  = element_text(size = rel(1.7), angle = 0),
+          plot.title = element_text(color="darkgray",
+                                    size=18,
+                                    face="bold",
+                                    margin = ggplot2::margin(t = 0, r = 100, b = 35, l = 100)),
+          strip.text.x = element_text(size = rel(2.5), angle = 0,
+                                      face="bold")) + 
+    scale_color_manual(values=c('#648FFF', '#785EF0', '#DC267F', '#FE6100', '#1EAD1E')) +
+    scale_fill_manual(values=c('#648FFF', '#785EF0', '#DC267F', '#FE6100', '#1EAD1E'))+
+    guides(fill = FALSE)}
+
+box_signo <- function(data, variable, yaxis) {
+  ggplot(data, aes(y=variable,x=Group, color=Group))+
+    geom_boxplot(aes(x = Group, y = variable, fill = Group),
+                 outlier.shape = NA, alpha = .6, width = .4, colour = "black")+
+    geom_point(position = position_jitter(width = .15),
+               size = 6,
+               shape = 20)+
+    ylab(yaxis)+
+    theme_minimal() +
+    theme(axis.title.y = element_text(size = rel(1.7), 
+                                      angle = 90, 
+                                      margin = ggplot2::margin(t = 0, r = 20, b = 0, l = 0)),
+          axis.title.x = element_blank(),
+          legend.title = element_text(size = rel(1.7), face = "bold"),
+          legend.text = element_text(size = rel(1.7), angle = 0),
+          axis.text.x  = element_blank(),
+          axis.text.y  = element_text(size = rel(1.7), angle = 0),
+          plot.title = element_text(color="darkgray",
+                                    size=18,
+                                    face="bold",
+                                    margin = ggplot2::margin(t = 0, r = 100, b = 35, l = 100)),
+          strip.text.x = element_text(size = rel(1.5), angle = 0,
+                                      face="bold"))+
+    guides(fill = FALSE)}
+
 fittedplot <- function(data, mod) {
   a <- ggplot(data, aes(x = fitted(mod), y =  compute_redres(mod, type = "std_cond"), fill = 1))+
     geom_point()+
@@ -395,33 +447,33 @@ coverage_table <- data.frame(Response = c(),
 ```{r coverage, warning = F, message = F, results='hide'}
 # GFAP
 mod_GFAP_cov <- lmer(GFAP_coverage~Group + (1|ID_easy),
-                     data=coverage[!coverage$Group == 'Pos_ctrl',],
+                     data=coverage[!coverage$Group == 'Pos_Control',],
                      na.action=na.exclude)
 summod_GFAP_cov <- summary(mod_GFAP_cov)
 
 coverage_table[1:3, 'Response'] <- rep('GFAP coverage', 3)
-coverage_table[1:3, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+coverage_table[1:3, 'Effect'] <- c('Control (intercept)', 'Window', 'Window+CORT')
 coverage_table[1:3, 'Coefficient'] <- round(summod_GFAP_cov[["coefficients"]][1:3,1], 2)
 coverage_table[1:3, 'Standard_error'] <- round(summod_GFAP_cov[["coefficients"]][1:3,2], 2)
 coverage_table[1:3, 'T_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3,4], 3)
 coverage_table[1:3, 'p_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3, 5], 4)
 
-fittedplot(coverage[!coverage$Group == 'Pos_ctrl',], mod_GFAP_cov)
+fittedplot(coverage[!coverage$Group == 'Pos_Control',], mod_GFAP_cov)
 
 # IBA
 mod_IBA_cov <- lmer(IBA_coverage~Group + (1|ID_easy),
-                    data=coverage[!coverage$Group == 'Pos_ctrl',],
+                    data=coverage[!coverage$Group == 'Pos_Control',],
                     na.action=na.exclude)
 summod_IBA_cov <- summary(mod_IBA_cov)
 
 coverage_table[4:6, 'Response'] <- rep('IBA coverage', 3)
-coverage_table[4:6, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+coverage_table[4:6, 'Effect'] <- c('Control (intercept)', 'Window', 'Window+CORT')
 coverage_table[4:6, 'Coefficient'] <- round(summod_IBA_cov[["coefficients"]][1:3,1], 2)
 coverage_table[4:6, 'Standard_error'] <- round(summod_IBA_cov[["coefficients"]][1:3,2], 2)
 coverage_table[4:6, 'T_value'] <- round(summod_IBA_cov[["coefficients"]][1:3,4], 3)
 coverage_table[4:6, 'p_value'] <- round(summod_IBA_cov[["coefficients"]][1:3, 5], 4)
 
-fittedplot(coverage[!coverage$Group == 'Pos_ctrl',], mod_IBA_cov)
+fittedplot(coverage[!coverage$Group == 'Pos_Control',], mod_IBA_cov)
 ```
 ```{r coverage_model_kable, warning = F, message = F}
 kable(coverage_table)
@@ -432,7 +484,7 @@ kable(coverage_table)
 ```{r coverage_contrasts, warning = F, message = F}
 #GFAP
 cont_GFAP_cover <- summary(glht(mod_GFAP_cov, linfct=mcp(Group="Tukey")))
-kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
+kable(data.frame(Comparisons = c("Control-Window", "Control-Window+CORT", "Window-Window+CORT"),
                  Coefficient = round(cont_GFAP_cover[["test"]][["coefficients"]], 2),
                  Standard_error = round(cont_GFAP_cover[["test"]][["sigma"]], 2),
                  T_value = round(cont_GFAP_cover[["test"]][["tstat"]], 3),
@@ -445,7 +497,7 @@ prince(coverage, coverage$GFAP_coverage_MomentsThreshold, 'GFAP coverage (Moment
 
 # IBA
 cont_IBA_cover <- summary(glht(mod_IBA_cov, linfct=mcp(Group="Tukey")))
-kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
+kable(data.frame(Comparisons = c("Control-Window", "Control-Window+CORT", "Window-Window+CORT"),
                  Coefficient = round(cont_IBA_cover[["test"]][["coefficients"]], 2),
                  Standard_error = round(cont_IBA_cover[["test"]][["sigma"]], 2),
                  T_value = round(cont_IBA_cover[["test"]][["tstat"]], 3),
@@ -459,18 +511,16 @@ prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
 
 ```{r Faceted_princes, warning = F, message = F, fig.width=16, fig.height=6}
 # Little-prince plot with bregma faceting - GFAP
-prince(coverage, coverage$GFAP_coverage, 'GFAP coverage') +
-  facet_wrap(~Bregma, dir="v",ncol=4)+
-  ylim(0,18) +
-  scale_fill_manual(values=c( '#DC267F','#648FFF', '#FE6100','#785EF0'))
-prince(coverage, coverage$GFAP_coverage_MomentsThreshold, 'GFAP coverage (Moments threshold)') +
-  facet_wrap(~Bregma, dir="v",ncol=4)
+box(coverage, coverage$GFAP_coverage, 'GFAP coverage') +
+  facet_wrap(~Bregma, dir="v",ncol=4, scales = "free_y")+
+  ylim(0,18) 
+box(coverage, coverage$GFAP_coverage_MomentsThreshold, 'GFAP coverage (Moments threshold)') +
+  facet_wrap(~Bregma, dir="v",ncol=4, scales = "free_y")
 
 # Little-prince plot with bregma faceting - IBA
-prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
-  facet_wrap(~Bregma, dir="v",ncol=4)+
-  ylim(0,50) +
-  scale_fill_manual(values=c( '#DC267F','#648FFF', '#FE6100','#785EF0'))
+box(coverage, coverage$IBA_coverage, 'IBA coverage') +
+  facet_wrap(~Bregma, dir="v",ncol=4, scales = "free_y")+
+  ylim(0,50)
 ```
 
 
@@ -553,7 +603,7 @@ mod_GFAP_cov <- lmer(GFAP_Load~Group + (1|ID_easy),
 summod_GFAP_cov <- summary(mod_GFAP_cov)
 
 coverage_table[1:3, 'Response'] <- rep('GFAP coverage', 3)
-coverage_table[1:3, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+coverage_table[1:3, 'Effect'] <- c('Control (intercept)', 'Window', 'Window+CORT')
 coverage_table[1:3, 'Coefficient'] <- round(summod_GFAP_cov[["coefficients"]][1:3,1], 2)
 coverage_table[1:3, 'Standard_error'] <- round(summod_GFAP_cov[["coefficients"]][1:3,2], 2)
 coverage_table[1:3, 'T_value'] <- round(summod_GFAP_cov[["coefficients"]][1:3,4], 3)
@@ -568,7 +618,7 @@ mod_IBA_cov <- lmer(IBA_Load~Group + (1|ID_easy),
 summod_IBA_cov <- summary(mod_IBA_cov)
 
 coverage_table[4:6, 'Response'] <- rep('IBA coverage', 3)
-coverage_table[4:6, 'Effect'] <- c('Ctrl (intercept)', 'Vehicle', 'CORT')
+coverage_table[4:6, 'Effect'] <- c('Control (intercept)', 'Window', 'Window+CORT')
 coverage_table[4:6, 'Coefficient'] <- round(summod_IBA_cov[["coefficients"]][1:3,1], 2)
 coverage_table[4:6, 'Standard_error'] <- round(summod_IBA_cov[["coefficients"]][1:3,2], 2)
 coverage_table[4:6, 'T_value'] <- round(summod_IBA_cov[["coefficients"]][1:3,4], 3)
@@ -585,7 +635,7 @@ kable(coverage_table)
 ```{r coverage_contrasts_QUINT, warning = F, message = F}
 #GFAP
 cont_GFAP_cover <- summary(glht(mod_GFAP_cov, linfct=mcp(Group="Tukey")))
-kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
+kable(data.frame(Comparisons = c("Control-Window", "Control-Window+CORT", "Window-Window+CORT"),
                  Coefficient = round(cont_GFAP_cover[["test"]][["coefficients"]], 2),
                  Standard_error = round(cont_GFAP_cover[["test"]][["sigma"]], 2),
                  T_value = round(cont_GFAP_cover[["test"]][["tstat"]], 3),
@@ -597,7 +647,7 @@ prince(coverage_nonPCs, coverage_nonPCs$GFAP_Load, 'GFAP coverage')+
 
 # IBA
 cont_IBA_cover <- summary(glht(mod_IBA_cov, linfct=mcp(Group="Tukey")))
-kable(data.frame(Comparisons = c("Control-Vehicle", "Control-CORT", "Vehicle-CORT"),
+kable(data.frame(Comparisons = c("Control-Window", "Control-Window+CORT", "Window-Window+CORT"),
                  Coefficient = round(cont_IBA_cover[["test"]][["coefficients"]], 2),
                  Standard_error = round(cont_IBA_cover[["test"]][["sigma"]], 2),
                  T_value = round(cont_IBA_cover[["test"]][["tstat"]], 3),
@@ -610,13 +660,13 @@ prince(coverage_nonPCs, coverage_nonPCs$IBA_Load, 'IBA coverage')+
 
 ```{r Faceted_princes_QUINT, warning = F, message = F, fig.width=16, fig.height=6}
 # Little-prince plot with bregma faceting - GFAP
-prince(coverage_nonPCs, coverage_nonPCs$GFAP_Load, 'GFAP coverage') +
-  facet_wrap(~Bregma, dir="v",ncol=4)+
+box(coverage_nonPCs, coverage_nonPCs$GFAP_Load, 'GFAP coverage') +
+  facet_wrap(~Bregma, dir="v",ncol=4, scales = "free_y")+
   ylim(0,6.25)
 
 # Little-prince plot with bregma faceting - IBA
-prince(coverage_nonPCs, coverage_nonPCs$IBA_Load, 'IBA coverage') +
-  facet_wrap(~Bregma, dir="v",ncol=4)+
+box(coverage_nonPCs, coverage_nonPCs$IBA_Load, 'IBA coverage') +
+  facet_wrap(~Bregma, dir="v",ncol=4, scales = "free_y")+
   ylim(0,1.75)
 ```
 
@@ -626,7 +676,7 @@ prince(coverage_nonPCs, coverage_nonPCs$IBA_Load, 'IBA coverage') +
 
 ```{r Custom_regions, warning = F, message = F, fig.width=11}
 # Little-prince plot with region faceting - GFAP
-GFAP_Customregions_Allslices <- GFAP_Customregions_Allslices[GFAP_Customregions_Allslices$NA. %in% c("Cortex","Fibretracts","Hippocampus","Olfactory","Hypothalamus","Striatum_Pallidum","Thalamus","Ventricular_System"),]
+GFAP_Customregions_Allslices <- GFAP_Customregions_Allslices[GFAP_Customregions_Allslices$NA. %in% c("Window+CORTex","Fibretracts","Hippocampus","Olfactory","Hypothalamus","Striatum_Pallidum","Thalamus","Ventricular_System"),]
 prince(GFAP_Customregions_Allslices, GFAP_Customregions_Allslices$Load, 'GFAP coverage') +
   facet_wrap(~NA., dir="v",ncol=4)+
   scale_color_manual(values=c('#648FFF', '#785EF0', '#DC267F')) +
@@ -635,7 +685,7 @@ prince(GFAP_Customregions_Allslices, GFAP_Customregions_Allslices$Load, 'GFAP co
 
 
 # Little-prince plot with region faceting - IBA
-IBA_Customregions_Allslices <- IBA_Customregions_Allslices[IBA_Customregions_Allslices$NA. %in% c("Cortex","Fibretracts","Hippocampus","Olfactory","Hypothalamus","Striatum_Pallidum","Thalamus","Ventricular_System"),]
+IBA_Customregions_Allslices <- IBA_Customregions_Allslices[IBA_Customregions_Allslices$NA. %in% c("Window+CORTex","Fibretracts","Hippocampus","Olfactory","Hypothalamus","Striatum_Pallidum","Thalamus","Ventricular_System"),]
 prince(IBA_Customregions_Allslices, IBA_Customregions_Allslices$Load, 'IBA coverage') +
   facet_wrap(~NA., dir="v",ncol=4)+
   scale_color_manual(values=c('#648FFF', '#785EF0', '#DC267F')) +
@@ -647,7 +697,7 @@ prince(IBA_Customregions_Allslices, IBA_Customregions_Allslices$Load, 'IBA cover
 
 ```{r random_forest, warning = F, message = F}
 # Creation of wide data frame type for exclusion of zero-area brain regions
-subsetted <- GFAP_RefAtlasRegions_Allslices[GFAP_RefAtlasRegions_Allslices$Group %in% c('Vehicle', 'CORT'),]
+subsetted <- GFAP_RefAtlasRegions_Allslices[GFAP_RefAtlasRegions_Allslices$Group %in% c('Window', 'Window+CORT'),]
 filter <- subsetted[, c(1,4,5)]
 
 filter <- reshape(filter,idvar="ID_easy",
@@ -694,7 +744,7 @@ foresthez_mutilated_simple <- foresthez
 colnames(foresthez_mutilated_simple) <- c('Animal', vektor, 'Group')
 
 # Ensuring there are no empty classes
-foresthez_mutilated_simple$Group <- factor(foresthez_mutilated_simple$Group, levels = c('Vehicle', 'CORT'))
+foresthez_mutilated_simple$Group <- factor(foresthez_mutilated_simple$Group, levels = c('Window', 'Window+CORT'))
 
 # helping printing out the random forest arguments that you can paste directly to the function
 row <- colnames(foresthez_mutilated_simple)
@@ -773,14 +823,16 @@ ggplot(importance_frame,aes(x=gini_decrease, y=  reorder(label, gini_decrease), 
         legend.text = element_text(size = rel(2.2), angle = 0),
         axis.text  = element_text(size = rel(1.5), angle = 0)) +
   scale_fill_manual(values=levels(importance_frame$color), name = "Significance", labels = c("p < 0,05", "p > 0,05"))
+
+kable(importance_frame[,c(10, 3:8)])
 ```
 
 
 ```{r boxplotting_significant_ones, warning = F, message = F, fig.width=16, fig.height=16}
 significants <- subsetted[subsetted$Region.name %in% importance_frame[importance_frame$color == 'darkviolet','label'],]
 
-prince(significants, significants$Load, 'GFAP coverage') +
-  facet_wrap(~Region.name, dir="v",ncol=3)+
+box_signo(significants, significants$Load, 'GFAP coverage') +
+  facet_wrap(~Region.name, dir="v",ncol=3, scales = "free_y")+
   scale_color_manual(values=c('#785EF0', '#DC267F')) +
   scale_fill_manual(values=c('#785EF0', '#DC267F'))+
   ylim(0,12.5)+
@@ -798,8 +850,8 @@ prince(significants, significants$Load, 'GFAP coverage') +
 ```{r T_testing, warning = F, message = F}
 significant_area_vector <- importance_frame[importance_frame$color == 'darkviolet','label']
 load_table <- data.frame("Brain_area" = NA,
-                         "Estimate_Vehicle" = NA,
-                         "Estimate_CORT" =NA,
+                         "Estimate_Window" = NA,
+                         "Estimate_Window+CORT" =NA,
                          "Standard_error" =NA, 
                          "T_value" = NA, 
                          "p_value" =NA)
@@ -807,16 +859,16 @@ load_table <- data.frame("Brain_area" = NA,
 for(area in 1:length(significant_area_vector)) {
   selected <- significants[significants$Region.name == significant_area_vector[area],]
   
-  vehicle_data <- subset(selected, Group == "Vehicle")$Load
-  cort_data <- subset(selected, Group == "CORT")$Load
-  t_test_cort <- t.test(vehicle_data, cort_data)
+  Window_data <- subset(selected, Group == "Window")$Load
+  Window_CORT_data <- subset(selected, Group == "Window+CORT")$Load
+  t_test_Window_CORT <- t.test(Window_data, Window_CORT_data)
 
   load_table[area, 'Brain_area'] <- significant_area_vector[area]
-  load_table[area, 'Estimate_Vehicle'] <- round(t_test_cort$estimate[1], 2)
-  load_table[area, 'Estimate_CORT'] <- round(t_test_cort$estimate[2], 2)
-  load_table[area, 'Standard_error'] <- round(t_test_cort$stderr, 2)
-  load_table[area, 'T_value'] <- round(t_test_cort$statistic, 3)
-  load_table[area, 'p_value'] <- round(t_test_cort$p.value, 4)
+  load_table[area, 'Estimate_Window'] <- round(t_test_Window_CORT$estimate[1], 2)
+  load_table[area, 3] <- round(t_test_Window_CORT$estimate[2], 2)
+  load_table[area, 'Standard_error'] <- round(t_test_Window_CORT$stderr, 2)
+  load_table[area, 'T_value'] <- round(t_test_Window_CORT$statistic, 3)
+  load_table[area, 'p_value'] <- round(t_test_Window_CORT$p.value, 4)
 }
 
 load_table$p_value_adjusted <- p.adjust(load_table$p_value, method = "fdr")
@@ -828,7 +880,7 @@ kable(load_table)
 
 ```{r random_forest_iba, warning = F, message = F}
 # Creation of wide data frame type for exclusion of zero-area brain regions
-subsetted <- IBA_RefAtlasRegions_Allslices[IBA_RefAtlasRegions_Allslices$Group %in% c('Vehicle', 'CORT'), ]
+subsetted <- IBA_RefAtlasRegions_Allslices[IBA_RefAtlasRegions_Allslices$Group %in% c('Window', 'Window+CORT'), ]
 filter <- subsetted[,c(1,4,5)]
 
 filter <- reshape(filter,idvar="ID_easy",
@@ -876,7 +928,7 @@ foresthez_mutilated_simple <- foresthez
 colnames(foresthez_mutilated_simple) <- c('Animal', vektor, 'Group')
 
 # Ensuring there are no empty classes
-foresthez_mutilated_simple$Group <- factor(foresthez_mutilated_simple$Group, levels = c('Vehicle', 'CORT'))
+foresthez_mutilated_simple$Group <- factor(foresthez_mutilated_simple$Group, levels = c('Window', 'Window+CORT'))
 
 # helping printing out the random forest arguments that you can paste directly to the function
 row <- colnames(foresthez_mutilated_simple)
@@ -955,13 +1007,16 @@ ggplot(importance_frame,aes(x=gini_decrease, y=  reorder(label, gini_decrease), 
         legend.text = element_text(size = rel(2.2), angle = 0),
         axis.text  = element_text(size = rel(1.5), angle = 0)) +
   scale_fill_manual(values=levels(importance_frame$color), name = "Significance", labels = c("p < 0,05", "p > 0,05"))
+
+kable(importance_frame[,c(10, 3:8)])
+
 ```
 
 ```{r boxplotting_significant_ones_iba, warning = F, message = F, fig.width=16, fig.height=16}
 significants <- subsetted[subsetted$Region.name %in% importance_frame[importance_frame$color == 'darkviolet','label'],]
 
-prince(significants, significants$Load, 'IBA coverage') +
-  facet_wrap(~Region.name, dir="v",ncol=3)+
+box_signo(significants, significants$Load, 'IBA coverage') +
+  facet_wrap(~Region.name, dir="v",ncol=3, scales = "free_y")+
   scale_color_manual(values=c('#785EF0', '#DC267F')) +
   scale_fill_manual(values=c('#785EF0', '#DC267F'))+
 #  ylim(0,12.5)+
@@ -980,8 +1035,8 @@ prince(significants, significants$Load, 'IBA coverage') +
 ```{r T_testing_iba, warning = F, message = F}
 significant_area_vector <- importance_frame[importance_frame$color == 'darkviolet','label']
 load_table <- data.frame("Brain_area" = NA,
-                         "Estimate_Vehicle" = NA,
-                         "Estimate_CORT" =NA,
+                         "Estimate_Window" = NA,
+                         "Estimate_Window+CORT" =NA,
                          "Standard_error" =NA, 
                          "T_value" = NA, 
                          "p_value" =NA)
@@ -989,16 +1044,16 @@ load_table <- data.frame("Brain_area" = NA,
 for(area in 1:length(significant_area_vector)) {
   selected <- significants[significants$Region.name == significant_area_vector[area],]
   
-  vehicle_data <- subset(selected, Group == "Vehicle")$Load
-  cort_data <- subset(selected, Group == "CORT")$Load
-  t_test_cort <- t.test(vehicle_data, cort_data)
+  Window_data <- subset(selected, Group == "Window")$Load
+  Window_CORT_data <- subset(selected, Group == "Window+CORT")$Load
+  t_test_Window_CORT <- t.test(Window_data, Window_CORT_data)
 
   load_table[area, 'Brain_area'] <- significant_area_vector[area]
-  load_table[area, 'Estimate_Vehicle'] <- round(t_test_cort$estimate[1], 2)
-  load_table[area, 'Estimate_CORT'] <- round(t_test_cort$estimate[2], 2)
-  load_table[area, 'Standard_error'] <- round(t_test_cort$stderr, 2)
-  load_table[area, 'T_value'] <- round(t_test_cort$statistic, 3)
-  load_table[area, 'p_value'] <- round(t_test_cort$p.value, 4)
+  load_table[area, 'Estimate_Window'] <- round(t_test_Window_CORT$estimate[1], 2)
+  load_table[area, 3] <- round(t_test_Window_CORT$estimate[2], 2)
+  load_table[area, 'Standard_error'] <- round(t_test_Window_CORT$stderr, 2)
+  load_table[area, 'T_value'] <- round(t_test_Window_CORT$statistic, 3)
+  load_table[area, 'p_value'] <- round(t_test_Window_CORT$p.value, 4)
 }
 
 load_table$p_value_adjusted <- p.adjust(load_table$p_value, method = "fdr")
