@@ -45,7 +45,7 @@ library(redres)
 library(randomForest)
 library(randomForestExplainer)
 
-coverage <- read_excel("results_inflammation.xlsx", sheet = "coverage")
+coverage <- read_excel("results_inflammation_UPDATED.xlsx", sheet = "coverage")
 # whole <- read_excel("results_inflammation.xlsx", sheet = "QUINT")
 
 # Changing variable nature
@@ -508,6 +508,8 @@ prince(coverage, coverage$IBA_coverage, 'IBA coverage') +
   ylim(0,50)
 
 ```
+
+You can crop the PC from the bregma subplots, if you think it does not make sense to include them like this (because they correspond to different bregma planes than are analysed for the other experimental groups).
 
 ```{r Faceted_princes, warning = F, message = F, fig.width=16, fig.height=6}
 # Little-prince plot with bregma faceting - GFAP
@@ -1060,4 +1062,195 @@ load_table$p_value_adjusted <- p.adjust(load_table$p_value, method = "fdr")
 
 kable(load_table)
 ```
+
+```{r exporting_czi_trials, include = F}
+# install.packages("readCzi")
+# 
+# # Load the required packages
+# library(readCzi)
+# library(EBImage)  # For image processing
+# 
+# # Set input and output paths
+# input_dir <- "E:/Aron"
+# output_dir <- "D:/Microscopy/ExportingWithR"
+# 
+# # List of animals (IDs)
+# animal_ids <- 1:10
+# 
+# # Loop through each animal ID
+# for (id in animal_ids) {
+#   # Loop through each slice (assuming 4 slices per animal)
+#   for (slice in 1:4) {
+#     # Construct the CZI file name
+#     czi_filename <- paste0("GFAP-IBA-NEUN_10x_ID", id, "_Slice", slice)
+#     czi_filepath <- file.path(input_dir, paste0(czi_filename, ".czi"))
+#     
+#     # Read CZI file
+#     image_data <- readCzi(input_file = czi_filepath)
+#     
+#     # Normalize pixel values (adjust brightness and contrast)
+#     normalized_image <- normalize(image_data)
+#     
+#     # Save as JPEG
+#     jpeg_filename <- paste0(czi_filename, ".jpeg")
+#     jpeg_filepath <- file.path(output_dir, jpeg_filename)
+#     writeJPEG(normalized_image, target = jpeg_filepath, quality = 90)
+#   }
+# }
+# 
+# # Done! Exported JPEG images are saved in the specified output directory.
+# 
+# 
+# 
+# #---------------------------------------------------------------------
+# 
+# if (!require("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
+# 
+# BiocManager::install("EBImage")
+# install.packages("cziR")  # If this package doesn't work, you may try using another like `CZIReader`
+# 
+# 
+# library(EBImage)
+# library(cziR)
+# library(magrittr)
+# 
+# # Set paths
+# input_path <- "E:/Aron"
+# output_path <- "D:/Microscopy/ExportingWithR"
+# 
+# # Check if output directory exists; if not, create it
+# if (!dir.exists(output_path)) {
+#   dir.create(output_path, recursive = TRUE)
+# }
+# 
+# # List of animal IDs and their slices
+# animals <- 1:10
+# slices <- 1:4
+# exceptions <- list("4" = 1:2)  # ID 4 has only two slices
+# 
+# # Function to process and save each image
+# process_and_save_image <- function(id, slice) {
+#   filename_czi <- sprintf("GFAP-IBA-NEUN_10x_ID%d_Slice%d.czi", id, slice)
+#   filename_jpeg <- sprintf("GFAP-IBA-NEUN_10x_ID%d_Slice%d.jpg", id, slice)
+#   
+#   # Full path for input and output
+#   full_path_czi <- file.path(input_path, filename_czi)
+#   full_path_jpeg <- file.path(output_path, filename_jpeg)
+#   
+#   # Load image
+#   image <- read.czi(full_path_czi)  # or use load.czi() based on your package
+#   
+#   # Adjust brightness and contrast, might need adjustment based on actual image data
+#   image_adjusted <- image %>% 
+#     normalize() %>% 
+#     adjust_brightness(contrast = 1.5, bias = 0.1) %>%
+#     normalize()
+#   
+#   # Save the image as JPEG
+#   writeImage(image_adjusted, full_path_jpeg, quality = 90)
+# }
+# 
+# # Loop through each animal and each slice
+# for (id in animals) {
+#   current_slices <- slices
+#   if (as.character(id) %in% names(exceptions)) {
+#     current_slices <- exceptions[[as.character(id)]]
+#   }
+#   for (slice in current_slices) {
+#     process_and_save_image(id, slice)
+#   }
+# }
+# 
+# 
+# 
+# #---------------------------------------------------------------------
+# 
+# library(EBImage)
+# 
+# # Set paths
+# input_path <- "E:/Aron"
+# output_path <- "D:/Microscopy/ExportingWithR"
+# 
+# # Check if output directory exists; if not, create it
+# if (!dir.exists(output_path)) {
+#   dir.create(output_path, recursive = TRUE)
+# }
+# 
+# # List of animal IDs and their slices
+# animals <- 1:10
+# slices <- 1:4
+# exceptions <- list("4" = 1:2)  # ID 4 has only two slices
+# 
+# # Function to process and save each image
+# process_and_save_image <- function(id, slice) {
+#   filename_czi <- sprintf("GFAP-IBA-NEUN_10x_ID%d_Slice%d.czi", id, slice)
+#   filename_jpeg <- sprintf("GFAP-IBA-NEUN_10x_ID%d_Slice%d.jpg", id, slice)
+#   
+#   # Full path for input and output
+#   full_path_czi <- file.path(input_path, filename_czi)
+#   full_path_jpeg <- file.path(output_path, filename_jpeg)
+#   
+#   # Load image using readImage from EBImage, which uses BioFormats
+#   image <- readImage(full_path_czi)
+#   
+#   # Adjust brightness and contrast, might need adjustment based on actual image data
+#   image_adjusted <- image %>%
+#     normalize() %>%
+#     adjust_brightness(contrast = 1.5, bias = 0.1) %>%
+#     normalize()
+#   
+#   # Save the image as JPEG
+#   writeImage(image_adjusted, full_path_jpeg, quality = 90)
+# }
+# 
+# # Loop through each animal and each slice
+# for (id in animals) {
+#   current_slices <- slices
+#   if (as.character(id) %in% names(exceptions)) {
+#     current_slices <- exceptions[[as.character(id)]]
+#   }
+#   for (slice in current_slices) {
+#     process_and_save_image(id, slice)
+#   }
+# }
+# 
+# 
+# 
+# #---------------------------------------------------------------------
+# # ... [previous code]
+# 
+# for (id in animal_ids) {
+#   for (slice in 1:4) {
+#     # Skip the loop for ID4 if slice is greater than 2
+#     if (id == 4 && slice > 2) next
+#     
+#     czi_filename <- paste0("GFAP-IBA-NEUN_10x_ID", id, "_Slice", slice)
+#     czi_filepath <- file.path(input_dir, paste0(czi_filename, ".czi"))
+#     
+#     # Check if the file exists before attempting to read
+#     if (file.exists(czi_filepath)) {
+#       image_data <- readCzi(input_file = czi_filepath)
+#       
+#       # Debugging: Print the length of detector_information
+#       print(length(image_data$detector_information))
+#       
+#       # Normalize pixel values (adjust brightness and contrast)
+#       normalized_image <- normalize(image_data)
+#       
+#       # Save as JPEG
+#       jpeg_filename <- paste0(czi_filename, ".jpeg")
+#       jpeg_filepath <- file.path(output_dir, jpeg_filename)
+#       writeJPEG(normalized_image, target = jpeg_filepath, quality = 90)
+#     } else {
+#       cat("File does not exist:", czi_filepath, "\n")
+#     }
+#   }
+# }
+# 
+# # ... [rest of the code]
+# 
+
+```
+
 
